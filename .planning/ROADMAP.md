@@ -70,6 +70,14 @@ phase_count: 3
 - Use only: `mapbox-gl@3.x`, `@deck.gl/{core,layers,mapbox}@9.x`, `@turf/turf@6.5` (only if needed for centroid lookup of popup positioning)
 - Forbidden: `@deck.gl/aggregation-layers`, `d3-hexbin`, `h3-js`, any new npm install
 
+**Plans:** 6 plans
+- [ ] 02-01-routing-shell-PLAN.md — Routing + NavBar entry + CrossCompareView scaffold (CC-01)
+- [ ] 02-02-store-PLAN.md — Pinia crossCompareStore: fetch + viewMode persistence + whitelist (CC-02)
+- [ ] 02-03-config-PLAN.md — crossCompareConfig: ramp/source/join-key constants + paint builders (CC-02, CC-03)
+- [ ] 02-04-mapbox-fill-PLAN.md — Mount Mapbox + fill layers + promoteId seam (CC-03)
+- [ ] 02-05-toggle-legend-PLAN.md — ViewToggle + RampLegend + wire into view (CC-02)
+- [ ] 02-06-acceptance-PLAN.md — Build / lint / smoke / SUMMARY (CC-01, CC-02, CC-03)
+
 ---
 
 ### Phase 3: Hover Interaction & Polish
