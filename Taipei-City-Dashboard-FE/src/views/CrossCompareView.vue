@@ -11,7 +11,7 @@ Testing: Jack Huang (Data Scientist), Ian Huang (Data Analysis Intern)
 <!-- 跨區比較頁：地圖底圖 + 各區分數渲染 (Phase 2 Plan 04 — fill layers) -->
 
 <script setup>
-import { onMounted, onBeforeUnmount, watch } from "vue";
+import { onMounted, onBeforeUnmount, watch, createApp, nextTick } from "vue";
 import mapboxGl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -33,12 +33,18 @@ import {
 } from "../assets/configs/crossCompareConfig";
 import ViewToggle from "../components/crosscompare/ViewToggle.vue";
 import RampLegend from "../components/crosscompare/RampLegend.vue";
+import DistrictPopup from "../components/crosscompare/DistrictPopup.vue";
 
 const store = useCrossCompareStore();
 
 // 地圖實例由本 view 持有（D-04）— 不寫進 ref，避免 Vue reactive proxy 干擾 Mapbox 內部狀態
 let map = null;
 let styleLoaded = false;
+
+// CC-04 hover state — top-level let bindings (D-22 — managed in onBeforeUnmount cleanup)
+let hoveredFeatureId = null;       // 當前 hover 中的 district 名稱（promoteId: TNAME → feature.id）
+let popup = null;                   // Mapbox Popup instance — null when not hovering
+let popupApp = null;                // Vue 3 app instance — null when not hovering
 
 // Mapbox setFilter helper — 啟用區用 in 過濾，停用區用反向
 function applyEnabledFilter() {
@@ -192,6 +198,13 @@ onMounted(async () => {
 
 		// 一次性 runtime probe 確認 TNAME（D-13）
 		map.once("idle", probeJoinKey);
+
+		// CC-04 — events bound to active layer ONLY (D-12)
+		// 結構性保證：crosscompare_fill_greyed 不接 hover，所以「greyed 區域 hover 不觸發任何反應」
+		// 是事件層的 invariant，不靠 Vue 端 disabledDistricts guard（後者只是 belt-and-braces）
+		map.on("mousemove", CROSSCOMPARE_FILL_LAYER_ID, onMouseMove);
+		map.on("mouseenter", CROSSCOMPARE_FILL_LAYER_ID, onMouseEnter);
+		map.on("mouseleave", CROSSCOMPARE_FILL_LAYER_ID, onMouseLeave);
 	});
 
 	// 4. 同時拉資料（不等地圖 load — 讓兩條軌道並行）
@@ -200,6 +213,10 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+	// CC-04 — 先清 popup（Vue app + Mapbox popup），再 remove map（D-14 / D-22 / Concern 3）
+	teardownPopup();
+	hoveredFeatureId = null;
+
 	// D-04：view 持有 map 實例 → 必須親手清掉，避免 Mapbox WebGL context 漏（Phase 3 hover 處理也仰賴此）
 	if (map) {
 		try {
@@ -229,6 +246,128 @@ watch(
 		applyEnabledFilter();
 	},
 );
+
+// ---------------------------------------------------------------
+// CC-04 hover：lift + popup
+// 事件僅綁在 active fill layer（D-12）— greyed layer 不接 hover，結構性保證 D-11
+// hoveredFeatureId 是當前在 hover 的 district 名稱（promoteId: TNAME → feature.id）
+// popup / popupApp 是當前掛載的 Mapbox Popup 與 Vue app；onBeforeUnmount + onMouseLeave 都會清掉
+// ---------------------------------------------------------------
+
+// 切換指定 district 的 feature-state.hover — Mapbox 內部會跑 fill-extrusion-height-transition（D-04）
+function setHover(districtName, on) {
+	if (!map || !districtName) return;
+	map.setFeatureState(
+		{
+			source: CROSSCOMPARE_SOURCE_ID,
+			// vector tile (production) 才有 sourceLayer；geojson (localhost) 必須省略（PATTERNS Concern 1）
+			...(CROSSCOMPARE_SOURCE_LAYER ? { sourceLayer: CROSSCOMPARE_SOURCE_LAYER } : {}),
+			id: districtName,
+		},
+		{ hover: on },
+	);
+}
+
+// 從 store.scoreByDistrict 找出對應 row — key 是 "city|district" 複合 key，
+// 但 hover 端不知 city，故線性掃 + inline 臺→台 normalisation（PATTERNS line 280-292）
+function findRowForDistrict(districtName) {
+	if (!districtName) return null;
+	const target = String(districtName).replace(/臺/g, "台").trim();
+	for (const [, row] of store.scoreByDistrict) {
+		const candidate = String(row.district).replace(/臺/g, "台").trim();
+		if (candidate === target) return row;
+	}
+	return null;
+}
+
+// 拆掉現有 popup（Vue app + Mapbox popup 都要清）— Concern 3：unmount 必須先於 remove
+function teardownPopup() {
+	if (popupApp) {
+		try {
+			popupApp.unmount();
+		} catch {
+			/* 已 unmount 或 mount 失敗 — 略過 */
+		}
+		popupApp = null;
+	}
+	if (popup) {
+		try {
+			popup.remove();
+		} catch {
+			/* 已被 Mapbox 內部移除 — 略過 */
+		}
+		popup = null;
+	}
+}
+
+// 建立 popup（D-06 / D-07）— cursor-anchored，body 用 createApp(DistrictPopup, props).mount(div)
+function buildPopup(lngLat, districtName) {
+	// 1. 先把舊的清掉（換區時也走這裡）
+	teardownPopup();
+
+	// 2. store 找 row（找不到也不要爆 — DistrictPopup 內 fmt() 會顯示 "—"）
+	const row = findRowForDistrict(districtName);
+
+	// 3. spawn Mapbox Popup（D-07：anchor: 'bottom', closeButton: false, cursor-anchored）
+	popup = new mapboxGl.Popup({
+		closeButton: false,
+		closeOnClick: false,
+		anchor: "bottom",
+		offset: 12,
+	})
+		.setLngLat(lngLat)
+		.setHTML('<div id="crosscompare-popup-mount"></div>')
+		.addTo(map);
+
+	// 4. 等 DOM 真的進文件樹再 mount Vue body（D-06 + Concern 3）
+	nextTick(() => {
+		// 競態防呆：teardownPopup 在 nextTick 排程後但 mount 之前被呼叫（快速移開游標）
+		if (!popup) return;
+		popupApp = createApp(DistrictPopup, {
+			districtName,
+			rank: row?.rank ?? null,
+			totalScore: row?.total_score ?? null,
+			courseScore: row?.course_score ?? null,
+			inspectionScore: row?.inspection_score ?? null,
+		});
+		popupApp.mount("#crosscompare-popup-mount");
+	});
+}
+
+// mousemove handler — D-23：rapid mousemove coalesce
+function onMouseMove(e) {
+	if (!map || !e.features?.length) return;
+	const feature = e.features[0];
+	const districtName = feature.id;   // promoteId: TNAME → feature.id 是 district 名稱
+	if (!districtName) return;
+
+	// belt-and-braces：D-11 disabledDistricts 二次防線（事件其實已被 D-12 結構性過濾）
+	if (store.disabledDistricts?.has?.(districtName)) return;
+
+	if (hoveredFeatureId !== districtName) {
+		// 換區了 — 清舊區、設新區
+		setHover(hoveredFeatureId, false);   // hoveredFeatureId === null 時 setHover 內部 early-return
+		setHover(districtName, true);
+		hoveredFeatureId = districtName;
+		buildPopup(e.lngLat, districtName);
+	} else if (popup) {
+		// 同一區 — 只更新 popup 跟著游標走（D-07 cursor-anchored）
+		popup.setLngLat(e.lngLat);
+	}
+}
+
+// mouseenter — D-13：active layer 進入時換成手指游標
+function onMouseEnter() {
+	if (map) map.getCanvas().style.cursor = "pointer";
+}
+
+// mouseleave — 清 hover state + 清 popup + 還原游標
+function onMouseLeave() {
+	if (map) map.getCanvas().style.cursor = "";
+	setHover(hoveredFeatureId, false);
+	hoveredFeatureId = null;
+	teardownPopup();
+}
 </script>
 
 <template>
