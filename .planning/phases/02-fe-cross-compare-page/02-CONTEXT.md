@@ -24,7 +24,7 @@ Build a new top-level Vue route `/crosscompare` that fetches the BE district sco
 ### Map Instance & Store Architecture
 - **D-04:** `CrossCompareView.vue` instantiates its OWN `mapboxgl.Map` instance (no reuse of the singleton in `mapStore.js`). The existing `mapStore` is dashboard-coupled (manages chart-component layers, popup state, the deck.gl overlay) and pulling cross-compare into it would pollute a critical store.
 - **D-05:** New Pinia store `crossCompareStore.js` owns: fetched scores, current `viewMode` (`'taipei' | 'metrotaipei'`), derived `enabledDistricts` Set, derived `disabledDistricts` Set, ramp domain `[min, max]` derived from scores. View consumes the store; the store does NOT touch Mapbox — the view holds the map instance.
-- **D-06:** Map style: reuse `Taipei-City-Dashboard-FE/src/assets/configs/mapbox/dark_map_style.json` so the dark-theme palette assumption holds. Initial center/zoom: roughly 雙北 bbox (center ≈ `[121.55, 25.07]`, zoom ≈ `9.5`).
+- **D-06:** Map style: reuse the existing `Taipei-City-Dashboard-FE/src/assets/configs/mapbox/mapStyle.js` (default-export object — same module `mapStore.js` line 44 already consumes). There is **no** `dark_map_style.json` file in the repo; an earlier draft of this CONTEXT named one — it does not exist. Use `import mapStyle from "../assets/configs/mapbox/mapStyle"`. Initial center/zoom: roughly 雙北 bbox (center ≈ `[121.55, 25.07]`, zoom ≈ `9.5`).
 
 ### Page Chrome
 - **D-07:** Map fills the viewport (full-bleed under NavBar). No sidebar, no top header bar. Matches existing `MapView` aesthetic and PROJECT.md "map-first" core value.
@@ -42,7 +42,7 @@ Build a new top-level Vue route `/crosscompare` that fetches the BE district sco
 - **D-12:** Toggle transition between modes is INSTANT in Phase 2 (`setFilter` swap, paint-expression refresh). No fade/animation choreography. If smoothness becomes a problem in user testing, Phase 3 may add a CSS-driven cross-fade — not committed here.
 
 ### District Join Key & 臺/台 Normalization
-- **D-13:** **Property name on `tp_district` and `metrotaipei_town` source layers must be discovered at runtime, NOT hardcoded blindly.** Plan one-time discovery: in `crossCompareConfig.js`, ship a dev-mode helper that calls `map.querySourceFeatures(sourceId, { sourceLayer })` after `style.load`, logs a sample feature's `properties` keys, and asserts the chosen join key is present. Hypothesis: likely `TNAME` or `district_name` or `name` — confirm in Phase 2 plan's first task before writing the `match` expression.
+- **D-13:** **Property name on `tp_district` and `metrotaipei_town` source layers is `TNAME`** — confirmed by reading `mapConfig.js` lines 55 and 89 where the existing label layers already render district names via `["get", "TNAME"]` against both source layers. PATTERNS.md elevates this from "must discover" to "strongly confirmed". Plan still includes a runtime assertion task that calls `map.querySourceFeatures(sourceId, { sourceLayer })` after `style.load` and logs a warning if `TNAME` is missing, but treat `TNAME` as the join key for paint expressions on first write — do NOT block on discovery.
 - **D-14:** Implement a `normalizeDistrictKey(city, name)` helper that canonicalises 臺 ↔ 台 (and any whitespace variants) before joining BE rows to vector tile features. Apply on BOTH sides at lookup time. Live in `Taipei-City-Dashboard-FE/src/utilities/crossCompare.js` (or `crossCompareConfig.js`). The fixture uses 臺北市/新北市; vector tiles may use either — normalize defensively.
 
 ### File Layout
@@ -58,7 +58,9 @@ Build a new top-level Vue route `/crosscompare` that fetches the BE district sco
 
 ### Network & Data Flow
 - **D-17:** Use the existing axios singleton (`src/router/axios.js`) — the response interceptor already maps statuses to Traditional Chinese toasts. New endpoint path: `/crosscompare/scores?view=...`. Auth: none required (BE Phase 1 made it public-readable; mirror that — do NOT add `IsLoggedIn` guard on the FE side either).
-- **D-18:** On view-mode toggle, do NOT refetch from BE. Phase 1 already returns 41 rows for `view=metrotaipei`; the 12-row Taipei view is a CLIENT-SIDE filter on `city === '臺北市'`. Single fetch on mount; toggle is purely an `enabledDistricts` Set swap.
+- **D-18:** On view-mode toggle, do NOT refetch from BE. Phase 1 already returns 41 rows for `view=metrotaipei`; the 12-row Taipei view is a CLIENT-SIDE filter on `city === '臺北市'`. Single fetch on mount; toggle is purely an `enabledDistricts` Set swap and a Mapbox `setFilter` call.
+
+- **D-19 (added 2026-05-03 from PATTERNS.md):** **Single source layer for both modes** — PATTERNS.md found that `tp_district` has no localhost geojson fallback in `mapStore.js` (only `metrotaipei_town` does, plus a TMS-vector-tile branch for prod). Implication: do NOT add two separate fill layers (one per source). Instead, render ALL 41 districts via the SINGLE `metrotaipei_town` source layer on both modes, and use `setFilter(['in', ['get', 'TNAME'], ['literal', enabledDistrictNames]])` to swap which districts are coloured vs greyed. This collapses Phase 2 from "two fill layers + two grey layers" to "one fill layer for active + one fill layer for greyed", both keyed off `metrotaipei_town`. The fixture's 12 臺北市 districts ARE present in `metrotaipei_town` (it covers 雙北 = 41 districts).
 
 </decisions>
 
