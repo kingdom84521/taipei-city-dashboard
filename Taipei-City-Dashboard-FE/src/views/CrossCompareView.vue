@@ -29,6 +29,8 @@ import {
 	buildGreyPaint,
 	buildLinePaint,
 } from "../assets/configs/crossCompareConfig";
+import ViewToggle from "../components/crosscompare/ViewToggle.vue";
+import RampLegend from "../components/crosscompare/RampLegend.vue";
 
 const store = useCrossCompareStore();
 
@@ -221,7 +223,12 @@ watch(
   <div class="crosscompare">
     <!-- #crosscompareMapBox needs to be empty to ensure Mapbox performance -->
     <div id="crosscompareMapBox" />
-    <!-- ViewToggle (top-left) 與 RampLegend (bottom-right) 由 Plan 02-05 補上 -->
+    <ViewToggle class="crosscompare__toggle" />
+    <RampLegend
+      class="crosscompare__legend"
+      :domain="store.rampDomain"
+      label="total_score"
+    />
   </div>
 </template>
 
@@ -235,6 +242,20 @@ watch(
 		width: 100%;
 		height: 100%;
 		border-radius: 0;
+	}
+
+	&__toggle {
+		position: absolute;
+		top: var(--font-m);
+		left: var(--font-m);
+		z-index: 2;
+	}
+
+	&__legend {
+		position: absolute;
+		bottom: var(--font-m);
+		right: var(--font-m);
+		z-index: 2;
 	}
 }
 </style>

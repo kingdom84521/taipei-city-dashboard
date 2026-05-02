@@ -35,15 +35,17 @@ const gradientStyle = computed(() => ({
 </script>
 
 <template>
-	<div class="ramplegend">
-		<span class="ramplegend__min">{{ minLabel }}</span>
-		<div
-			class="ramplegend__bar"
-			:style="gradientStyle"
-		/>
-		<span class="ramplegend__max">{{ maxLabel }}</span>
-		<p class="ramplegend__axis">{{ label }}</p>
-	</div>
+  <div class="ramplegend">
+    <span class="ramplegend__min">{{ minLabel }}</span>
+    <div
+      class="ramplegend__bar"
+      :style="gradientStyle"
+    />
+    <span class="ramplegend__max">{{ maxLabel }}</span>
+    <p class="ramplegend__axis">
+      {{ label }}
+    </p>
+  </div>
 </template>
 
 <style scoped lang="scss">

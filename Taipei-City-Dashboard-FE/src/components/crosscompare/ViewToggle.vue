@@ -19,26 +19,26 @@ function handleClick(value) {
 </script>
 
 <template>
-	<div
-		class="viewtoggle"
-		role="tablist"
-		aria-label="View mode"
-	>
-		<button
-			v-for="opt in options"
-			:key="opt.value"
-			:class="{
-				viewtoggle__btn: true,
-				'viewtoggle__btn--active': store.viewMode === opt.value,
-			}"
-			role="tab"
-			:aria-selected="store.viewMode === opt.value"
-			type="button"
-			@click="handleClick(opt.value)"
-		>
-			{{ opt.label }}
-		</button>
-	</div>
+  <div
+    class="viewtoggle"
+    role="tablist"
+    aria-label="View mode"
+  >
+    <button
+      v-for="opt in options"
+      :key="opt.value"
+      :class="{
+        viewtoggle__btn: true,
+        'viewtoggle__btn--active': store.viewMode === opt.value,
+      }"
+      role="tab"
+      :aria-selected="store.viewMode === opt.value"
+      type="button"
+      @click="handleClick(opt.value)"
+    >
+      {{ opt.label }}
+    </button>
+  </div>
 </template>
 
 <style scoped lang="scss">
