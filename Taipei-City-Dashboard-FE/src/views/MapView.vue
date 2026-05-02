@@ -21,9 +21,6 @@ import { useMapStore } from "../store/mapStore";
 import MapContainer from "../components/map/MapContainer.vue";
 import MoreInfo from "../components/dialogs/MoreInfo.vue";
 import ReportIssue from "../components/dialogs/ReportIssue.vue";
-import MakeNewThingHerePanel from "../make-new-thing-here/MakeNewThingHerePanel.vue";
-
-const isMakeNewThingHere = computed(() => route.query.index === "make-new-thing-here");
 
 const contentStore = useContentStore();
 const dialogStore = useDialogStore();
@@ -144,16 +141,9 @@ function popularBasicLayerGA(map_config) {
 <template>
   <div class="map">
     <div class="hide-if-mobile">
-      <!-- 0. make-new-thing-here: synthetic index, swaps the entire content area for MakeNewThingHerePanel. -->
-      <div
-        v-if="isMakeNewThingHere"
-        class="map-charts"
-      >
-        <MakeNewThingHerePanel />
-      </div>
       <!-- 1. If the dashboard is map-layers -->
       <div
-        v-else-if="
+        v-if="
           contentStore.currentDashboard.index?.includes('map-layers')
         "
         class="map-charts"
