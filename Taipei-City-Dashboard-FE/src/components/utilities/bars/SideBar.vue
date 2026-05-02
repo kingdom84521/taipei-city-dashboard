@@ -8,7 +8,6 @@ import { useMapStore } from "../../../store/mapStore";
 import { useAuthStore } from "../../../store/authStore";
 
 import SideBarTab from "../miscellaneous/SideBarTab.vue";
-import SideBarLink from "../miscellaneous/SideBarLink.vue";
 
 const contentStore = useContentStore();
 const dialogStore = useDialogStore();
@@ -157,12 +156,6 @@ onMounted(() => {
     <h1>
       {{ isExpanded ? `工具` : `工具` }}
     </h1>
-    <SideBarLink
-      icon="science"
-      title="Make New Thing Here"
-      to="/mapview?index=make-new-thing-here"
-      :expanded="isExpanded"
-    />
     <h1 @click="toggleCollapse(contentStore.cityManager.activeCities)">
       {{ isExpanded ? `公共儀表板` : `公共` }}
     </h1>
