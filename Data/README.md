@@ -8,6 +8,7 @@
 | 臺北市 HACCP 及衛生講習課程 | [政府資料開放平台 dataset/9007](https://data.gov.tw/dataset/9007) |
 | 新北市 HACCP 及衛生講習課程 | [政府資料開放平台 dataset/9006](https://data.gov.tw/dataset/9006) |
 | 食品業者抽驗紀錄（整合版） | 新北市衛生局、臺北市衛生局、衛福部食藥署多來源整合 |
+| 篩檢院所統計 | 臺北市衛生局、新北市衛生局 |
 
 ## 檔案說明
 
@@ -17,6 +18,8 @@
 | `food_hygiene/新北市114年度通過餐飲衛生管理分級評核名單(Excel).xlsx` | 新北市 114 年度評核資料 |
 | `haccp_course/台北新北_115年_課程資料.json` | 雙北 115 年度 HACCP 及衛生講習課程（332 筆） |
 | `merged_with_testings.jsonl` | 食品業者登記資料與多來源抽驗結果整合（229,012 筆） |
+| `臺北市_篩檢院所統計.json` | 臺北市各行政區六大篩檢項目院所數（12 區） |
+| `新北市_篩檢院所統計.json` | 新北市各行政區六大篩檢項目院所數（29 區） |
 
 ## 匯入資料庫
 
@@ -43,6 +46,15 @@ docker exec -i postgres-manager psql -U postgres -d dashboardmanager < Data/hacc
 
 # 7. 匯入食品業者抽驗元件設定（新增元件至儀表板）
 docker exec -i postgres-manager psql -U postgres -d dashboardmanager < Data/food_inspection/db-sample-data/food_inspection_manager.sql
+
+# 8. 建立篩檢院所統計資料表（screening_stats）
+docker exec -i postgres-data psql -U postgres -d dashboard < Data/screening_stats/db-sample-data/screening_stats_dashboard.sql
+
+# 9. 寫入篩檢院所統計資料（246 筆）
+docker exec -i postgres-data psql -U postgres -d dashboard < Data/screening_stats/db-sample-data/screening_stats_data.sql
+
+# 10. 匯入篩檢院所統計元件設定（新增元件至食安健康儀表板）
+docker exec -i postgres-manager psql -U postgres -d dashboardmanager < Data/screening_stats/db-sample-data/screening_stats_manager.sql
 ```
 
 ---
