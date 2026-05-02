@@ -76,17 +76,19 @@ Add the levitate hover animation + popup on top of Phase 2's choropleth, and rem
 
 ### make-new-thing-here Removal (CC-04 acceptance #3)
 - **D-15:** Delete the entire `Taipei-City-Dashboard-FE/src/make-new-thing-here/` directory (2 files: `MakeNewThingHerePanel.vue`, `README.md`). The README's historical context (the synthetic-index hack rationale) is preserved in the deletion commit message body so `git log --follow` retains archaeology.
-- **D-16:** Edit `Taipei-City-Dashboard-FE/src/views/MapView.vue` — remove three lines: line 24 import, line 26 `isMakeNewThingHere` computed, lines around 147-153 the `<template>` `v-if="isMakeNewThingHere"` branch + `<MakeNewThingHerePanel />` slot. Remove the surrounding HTML comment too.
-- **D-17:** Edit `Taipei-City-Dashboard-FE/src/components/utilities/bars/SideBar.vue` line 163 — remove the `<router-link>` (or whatever wrapper) that targets `to="/mapview?index=make-new-thing-here"`. If the link is wrapped in a containing `<li>` or `<div>` with no other content, remove the wrapper too.
-- **D-18:** Verification gate: `grep -r "make-new-thing-here" Taipei-City-Dashboard-FE/src/` returns ZERO matches. Final `npm run build` exits 0. Plan's last task asserts both.
+- **D-16:** Edit `Taipei-City-Dashboard-FE/src/views/MapView.vue` — remove three lines: line 24 import, line 26 `isMakeNewThingHere` computed, lines around 147-153 the `<template>` `v-if="isMakeNewThingHere"` branch + `<MakeNewThingHerePanel />` slot, plus the surrounding HTML comment. **CRITICAL (per PATTERNS.md Concern 5):** the v-else-if cascade trap — after removing the `v-if="isMakeNewThingHere"`, the next `<div v-else-if="...">` (around line 156) becomes orphaned. The planner MUST rewrite that next branch from `v-else-if` to `v-if` (or compress two branches into one) so the template still compiles. Read the actual line numbers; don't trust the count above blindly.
+- **D-17:** Edit `Taipei-City-Dashboard-FE/src/components/utilities/bars/SideBar.vue` — remove the `<SideBarLink>` block at lines 160-165 (the `to="/mapview?index=make-new-thing-here"` link sandwiched between two `<h1>` section headers, NOT inside the dashboards `<v-for>`). **Also remove the `import SideBarLink from ...` statement at line 11** if it's no longer used (PATTERNS.md Concern 6 — `no-unused-vars` ESLint rule will fail the build otherwise). Leave the surrounding `工具` `<h1>` placeholder header in place (don't aggressively delete adjacent chrome — minimal-diff preference).
+- **D-17b (added 2026-05-03 from PATTERNS.md Concern 9):** **6th in-tree reference exists in `Taipei-City-Dashboard-FE/src/store/contentStore.js` lines 87-98** — a `setRouteParams` short-circuit branch keyed on `make-new-thing-here`. CC-04 acceptance #3 (`grep -r "make-new-thing-here" Taipei-City-Dashboard-FE/src/` returns zero) **WILL fail** unless this is also removed. The planner must include this in the deletion task. Read the lines, identify the surrounding logic (likely an early-return inside the `setRouteParams` action), and remove the entire branch — not just the string match.
+- **D-18:** Verification gate: `grep -r "make-new-thing-here" Taipei-City-Dashboard-FE/src/` returns ZERO matches across ALL files (views, components, stores, configs). Final `npm run build` exits 0. Plan's last task asserts both.
 
 ### File Layout
 - **D-19:** Files Phase 3 creates / edits / deletes:
   - NEW: `Taipei-City-Dashboard-FE/src/components/crosscompare/DistrictPopup.vue`
   - EDIT: `Taipei-City-Dashboard-FE/src/views/CrossCompareView.vue` (add extrusion layer, hover handler, popup mount, teardown extension)
   - EDIT: `Taipei-City-Dashboard-FE/src/assets/configs/crossCompareConfig.js` (add `EXTRUSION_LAYER_ID`, `buildExtrusionPaint()` if extracted, `EXTRUSION_HEIGHT_HOVER = 4000`, `EXTRUSION_TRANSITION_MS = 150`)
-  - EDIT: `Taipei-City-Dashboard-FE/src/views/MapView.vue` (remove 3 lines + comment)
-  - EDIT: `Taipei-City-Dashboard-FE/src/components/utilities/bars/SideBar.vue` (remove the synthetic-index link, line 163)
+  - EDIT: `Taipei-City-Dashboard-FE/src/views/MapView.vue` (remove import + computed + v-if branch + comment; rewrite the orphaned v-else-if to v-if per PATTERNS.md Concern 5)
+  - EDIT: `Taipei-City-Dashboard-FE/src/components/utilities/bars/SideBar.vue` (remove `<SideBarLink>` block at lines 160-165; remove `import SideBarLink` at line 11 if unused)
+  - EDIT: `Taipei-City-Dashboard-FE/src/store/contentStore.js` (remove the `make-new-thing-here` short-circuit branch at lines 87-98 — added per PATTERNS.md Concern 9)
   - DELETE: `Taipei-City-Dashboard-FE/src/make-new-thing-here/` (entire directory, 2 files)
 - **D-20:** Phase 3 does NOT touch: `mapStore.js`, `mapConfig.js`, `mapStyle.js`, `crossCompareStore.js`, `ViewToggle.vue`, `RampLegend.vue`, `router/index.js`, `NavBar.vue` (all Phase 2 surface stays intact).
 
