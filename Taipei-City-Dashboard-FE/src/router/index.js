@@ -59,11 +59,6 @@ const routes = [
 		redirect: "/embed/0",
 	},
 	{
-		path: "/datalab",
-		name: "datalab",
-		component: () => import("../views/DataLabView.vue"),
-	},
-	{
 		path: "/admin",
 		redirect: "/admin/dashboard?city=taipei",
 	},
@@ -126,7 +121,7 @@ router.beforeEach((to) => {
 	const authStore = useAuthStore();
 	if (authStore.isMobileDevice && authStore.isNarrowDevice) {
 		if (
-			!["dashboard", "component-info", "callback", "embed", "mapview", "datalab"].includes(
+			!["dashboard", "component-info", "callback", "embed", "mapview"].includes(
 				to.name
 			)
 		) {

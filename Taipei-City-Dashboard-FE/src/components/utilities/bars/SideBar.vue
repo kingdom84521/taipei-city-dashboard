@@ -8,6 +8,7 @@ import { useMapStore } from "../../../store/mapStore";
 import { useAuthStore } from "../../../store/authStore";
 
 import SideBarTab from "../miscellaneous/SideBarTab.vue";
+import SideBarLink from "../miscellaneous/SideBarLink.vue";
 
 const contentStore = useContentStore();
 const dialogStore = useDialogStore();
@@ -153,6 +154,15 @@ onMounted(() => {
         </div>
       </transition>
     </template>
+    <h1>
+      {{ isExpanded ? `工具` : `工具` }}
+    </h1>
+    <SideBarLink
+      icon="science"
+      title="DataLab"
+      to="/mapview?index=datalab"
+      :expanded="isExpanded"
+    />
     <h1 @click="toggleCollapse(contentStore.cityManager.activeCities)">
       {{ isExpanded ? `公共儀表板` : `公共` }}
     </h1>
