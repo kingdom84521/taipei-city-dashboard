@@ -24,7 +24,7 @@ must_haves:
     - "MapView.vue line 156 v-else-if rewritten to v-if (D-16, PATTERNS Concern 5 — orphan-cascade fix)"
     - "SideBar.vue lines 160-165 SideBarLink block removed (D-17)"
     - "SideBar.vue line 11 import SideBarLink removed (D-17, PATTERNS Concern 6 — no-unused-vars)"
-    - "contentStore.js lines 90-98 (the 2-line comment + 6-line if block totalling 8 lines) — make-new-thing-here short-circuit branch removed (D-17b, PATTERNS Concern 9)"
+    - "contentStore.js lines 91-98 (the 2-line comment + 6-line if block totalling 8 lines) — make-new-thing-here short-circuit branch removed (D-17b, PATTERNS Concern 9)"
     - "grep -r make-new-thing-here Taipei-City-Dashboard-FE/src/ returns ZERO matches (D-18 — the load-bearing acceptance gate)"
     - "npm run build exits 0 (D-18)"
   artifacts:
@@ -58,7 +58,7 @@ The 6 reference sites (per PATTERNS Concern 9 — explicitly added by D-17b afte
 3. `MapView.vue` lines 147-153 — comment + `v-if` branch + panel mount
 4. `SideBar.vue` lines 160-165 — `<SideBarLink to="/mapview?index=make-new-thing-here">`
 5. `SideBar.vue` line 11 — `import SideBarLink` (becomes unused after #4)
-6. `contentStore.js` lines 90-98 — `setRouteParams` short-circuit branch (the 6th site that PATTERNS.md Concern 9 surfaced — CC-04 acceptance gate fails without this)
+6. `contentStore.js` lines 91-98 — `setRouteParams` short-circuit branch (the 6th site that PATTERNS.md Concern 9 surfaced — CC-04 acceptance gate fails without this)
 
 Plus the directory deletion: `Taipei-City-Dashboard-FE/src/make-new-thing-here/` (2 files: `MakeNewThingHerePanel.vue` + `README.md`).
 
@@ -342,13 +342,13 @@ SideBar.vue: SideBarLink block + unused import removed. The 工具 placeholder s
   <read_first>
     - .planning/phases/03-hover-interaction-polish/03-CONTEXT.md (D-17b — added 2026-05-03 from PATTERNS Concern 9)
     - .planning/phases/03-hover-interaction-polish/03-PATTERNS.md (Concern 9 — verbatim block to delete; safety analysis of removing the early-return)
-    - Taipei-City-Dashboard-FE/src/store/contentStore.js (read lines 80-110 to confirm exact line range — the verified state shows the comment at lines 90-91 + the if at lines 92-97 + closing brace at 98)
+    - Taipei-City-Dashboard-FE/src/store/contentStore.js (read lines 80-110 to confirm exact line range — verified live state: comment at lines 91-92, `if (index === "make-new-thing-here") {` at line 93, body lines 94-97, closing brace at line 98 — total 8 lines `91-98` inclusive)
   </read_first>
 
   <action>
 **Per D-17b + PATTERNS Concern 9.** This is the 6th `make-new-thing-here` reference site. The CC-04 acceptance gate (`grep -r "make-new-thing-here" Taipei-City-Dashboard-FE/src/` returns ZERO) FAILS without this deletion. The original CONTEXT enumerated 5 sites; D-17b explicitly added this one after the pattern-mapping pass discovered it.
 
-**Deletion target — `contentStore.js` lines 90-98 inclusive** (the 2-line comment + the 6-line `if` block + the closing brace). Verbatim:
+**Deletion target — `contentStore.js` lines 91-98 inclusive** (the 2-line comment + the 6-line `if` block + the closing brace). Verbatim:
 
 ```js
 			// "make-new-thing-here" is a synthetic index handled directly by MapView; skip BE dashboard lookup
@@ -379,7 +379,7 @@ The surrounding context after deletion (lines 88 + 89 stay; what was line 99 bec
 (If a user manually crafts `/mapview?index=make-new-thing-here` in the URL, MapView will fall through to the existing `currentDashboard.components?.length !== 0` else-branch and either show whatever the `make-new-thing-here` index would resolve to via BE — which is nothing — or render an empty `<DashboardComponent>` list. No crash, no broken state. Acceptable.)
 
 **Constraints:**
-- Re-verify the line range with `grep -n "make-new-thing-here" Taipei-City-Dashboard-FE/src/store/contentStore.js` before deleting. PATTERNS.md cites lines 87-98; the verified state shows lines 90-98 inclusive (comment block at 90-91, if at 92-97, closing brace at 98). The discrepancy is just a 3-line offset from blank-line counting; the BLOCK is the same. Delete the whole block bounded by the two `// "make-new-thing-here"` comments through the matching `}`.
+- Re-verify the line range with `grep -n "make-new-thing-here" Taipei-City-Dashboard-FE/src/store/contentStore.js` before deleting. Live state: lines 91-98 inclusive (comment at 91-92, `if` at 93, body 94-97, closing brace at 98). Delete the whole block bounded by the two `// "make-new-thing-here"` comments through the matching `}`.
 - Do NOT touch any other code in `contentStore.js` — this is a 1130-line file with much unrelated logic. Minimal-diff.
 - Hard tabs preserved.
 - The `setRouteParams` action's outer `if (this.currentDashboard.index === index ...)` block (the "Don't do anything if the path is the same" guard) must STAY — it's the next thing in the function and is unrelated.
@@ -465,7 +465,7 @@ Removed:
 - src/make-new-thing-here/README.md
 - import + computed + v-if branch in src/views/MapView.vue (lines 24, 26, 147-153) + v-else-if→v-if rewrite at line 156
 - SideBarLink to /mapview?index=make-new-thing-here in src/components/utilities/bars/SideBar.vue (lines 160-165) + unused import line 11
-- setRouteParams short-circuit branch in src/store/contentStore.js (lines 90-98) [D-17b]
+- setRouteParams short-circuit branch in src/store/contentStore.js (lines 91-98) [D-17b]
 
 CC-04 acceptance: grep -r "make-new-thing-here" Taipei-City-Dashboard-FE/src/ returns ZERO matches.
 ```

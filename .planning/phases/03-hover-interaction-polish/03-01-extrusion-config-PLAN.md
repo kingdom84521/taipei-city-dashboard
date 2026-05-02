@@ -18,6 +18,7 @@ must_haves:
     - "buildExtrusionPaint's fill-extrusion-height is a case expression on ['feature-state','hover'] returning EXTRUSION_HEIGHT_HOVER on hover and 0 at rest (D-03 — paint-expression-driven, NOT setPaintProperty)"
     - "CrossCompareView.vue's addCrossCompareLayers() adds a fill-extrusion layer with id=CROSSCOMPARE_EXTRUSION_LAYER_ID ABOVE crosscompare_fill_active (D-02 — companion above existing flat fill, NOT replacement)"
     - "Existing flat fill / greyed fill / line layers untouched — Phase 2 D-19 single-source semantics preserved"
+    - "Phase 2 surface untouched — git diff against Phase 2 boundary (5f464d8) shows ZERO changes to mapStore.js, mapConfig.js, mapStyle.js, crossCompareStore.js, ViewToggle.vue, RampLegend.vue, router/index.js, NavBar.vue (D-20)"
     - "npm run build exits 0; eslint clean"
   artifacts:
     - path: "Taipei-City-Dashboard-FE/src/assets/configs/crossCompareConfig.js"
@@ -237,17 +238,13 @@ crossCompareConfig.js exports the four new symbols (CROSSCOMPARE_EXTRUSION_LAYER
   <action>
 **Per D-02 and D-05.** Two edits in `CrossCompareView.vue` — extend the import block, then APPEND a 4th `addLayer` call inside `addCrossCompareLayers()`. Hard tabs.
 
-**Edit 1 — extend the named import from `crossCompareConfig` (current lines 20-31).** Add three new symbols to the existing import list. The exact change to the existing block (insert at the END of the import group, before `} from "../assets/configs/crossCompareConfig";`):
+**Edit 1 — extend the named import from `crossCompareConfig` (current lines 20-31).** Add exactly TWO new symbols to the existing import list — only what Task 2's body actually consumes. ESLint `no-unused-vars` (error level) would fail the build if you import `EXTRUSION_HEIGHT_HOVER` or `EXTRUSION_TRANSITION_MS` here, since Task 2 references them only through `buildExtrusionPaint`'s body (which is in `crossCompareConfig.js`, not in this view). Plan 03-04's hover handler does not import them either — it sets `feature-state.hover` and lets the paint expression handle the height swap. They stay encapsulated in the config module.
 
 Add these lines (with leading tab) inside the existing `import { ... }`:
 ```js
 	CROSSCOMPARE_EXTRUSION_LAYER_ID,
-	EXTRUSION_HEIGHT_HOVER,
-	EXTRUSION_TRANSITION_MS,
 	buildExtrusionPaint,
 ```
-
-(`EXTRUSION_HEIGHT_HOVER` / `EXTRUSION_TRANSITION_MS` are imported here even though only `buildExtrusionPaint` references their values — they're imported defensively because Plan 03-04's hover handler may want to read them too. ESLint's `no-unused-vars` would only fire if Plan 03-04 doesn't pull them through; safer to forward them now and let 03-04 prune if unused. **If linter complains in this plan, drop `EXTRUSION_HEIGHT_HOVER` and `EXTRUSION_TRANSITION_MS` from this import — keep only `CROSSCOMPARE_EXTRUSION_LAYER_ID` and `buildExtrusionPaint` for Task 2's needs.**)
 
 After Task 2 the import block becomes:
 ```js

@@ -14,6 +14,8 @@ must_haves:
   truths:
     - "Hovering an enabled district triggers fill-extrusion lift via setFeatureState({source, sourceLayer?, id: districtName}, {hover: true}) (D-01, D-02, D-04)"
     - "Hover events bind ONLY to crosscompare_fill_active layer — greyed layer never fires hover (D-12 — structural enforcement of D-11 non-interactive)"
+    - "store.disabledDistricts.has(districtName) belt-and-braces guard inside onMouseMove (D-11 — defensive secondary to D-12, catches any future drift if the active filter ever leaks names)"
+    - "Phase 2 surface untouched — git diff against Phase 2 boundary (5f464d8) shows ZERO changes to mapStore.js, mapConfig.js, mapStyle.js, crossCompareStore.js, ViewToggle.vue, RampLegend.vue, router/index.js, NavBar.vue (D-20)"
     - "Cursor changes to pointer on mouseenter, restored on mouseleave (D-13)"
     - "Popup is a Mapbox Popup instance with closeButton:false, closeOnClick:false, anchor:'bottom', offset:12, body mounted via createApp(DistrictPopup, props).mount('#crosscompare-popup-mount') in nextTick (D-06, D-07)"
     - "Popup positioned at cursor lng/lat (mousemove e.lngLat) — NOT polygon centroid (D-07)"
@@ -132,7 +134,7 @@ export function buildExtrusionPaint(domain, scoreByDistrict): Paint;
 <tasks>
 
 <task type="auto" tdd="false">
-  <name>Task 1: Extend imports in CrossCompareView.vue (vue + DistrictPopup + normalizeDistrictKey)</name>
+  <name>Task 1: Extend imports in CrossCompareView.vue (vue + DistrictPopup)</name>
   <files>Taipei-City-Dashboard-FE/src/views/CrossCompareView.vue</files>
 
   <read_first>
@@ -172,7 +174,9 @@ import {
 } from "../assets/configs/crossCompareConfig";
 ```
 
-Add `normalizeDistrictKey` (already exported from Phase 2 — used here for 臺/台 canonicalisation in the row lookup) — insert it alphabetically with the other helpers:
+**Note:** Task 2 normalises 臺→台 INLINE via `String(districtName).replace(/臺/g, "台")` because the hover handler does not know `city` (which `normalizeDistrictKey(city, name)` requires for its composite key). Do NOT import `normalizeDistrictKey` here — ESLint `no-unused-vars` (error level) would fail the build.
+
+The post-edit import block:
 
 ```js
 import {
@@ -184,7 +188,6 @@ import {
 	CROSSCOMPARE_GREY_LAYER_ID,
 	CROSSCOMPARE_GREY_LINE_LAYER_ID,
 	CROSSCOMPARE_EXTRUSION_LAYER_ID,
-	normalizeDistrictKey,
 	buildFillPaint,
 	buildGreyPaint,
 	buildLinePaint,
@@ -209,20 +212,20 @@ import DistrictPopup from "../components/crosscompare/DistrictPopup.vue";
     <gates>
       - `grep -c "createApp\|nextTick" Taipei-City-Dashboard-FE/src/views/CrossCompareView.vue` ≥ 2 (imports added)
       - `grep -c "DistrictPopup" Taipei-City-Dashboard-FE/src/views/CrossCompareView.vue` ≥ 1 (import line)
-      - `grep -c "normalizeDistrictKey" Taipei-City-Dashboard-FE/src/views/CrossCompareView.vue` ≥ 1
+      - `! grep -q "normalizeDistrictKey" Taipei-City-Dashboard-FE/src/views/CrossCompareView.vue` (NOT imported — inline .replace handles 臺→台 in Task 2)
     </gates>
   </verify>
 
   <acceptance_criteria>
     - Vue import extended with `createApp` and `nextTick`.
     - DistrictPopup import added.
-    - `normalizeDistrictKey` added to crossCompareConfig import.
+    - `normalizeDistrictKey` is NOT imported (inline `.replace` covers 臺→台 in Task 2).
     - No other imports changed.
-    - Build is provisional (will pass after Task 2 references the new imports).
+    - Build is provisional (will pass after Task 2 references `createApp` and `nextTick`).
   </acceptance_criteria>
 
   <done>
-Imports extended. createApp, nextTick, DistrictPopup, normalizeDistrictKey are now in scope for Tasks 2-3.
+Imports extended. createApp, nextTick, DistrictPopup are now in scope for Tasks 2-3.
   </done>
 </task>
 
@@ -276,7 +279,7 @@ function setHover(districtName, on) {
 }
 
 // 從 store.scoreByDistrict 找出對應 row — key 是 "city|district" 複合 key，
-// 但 hover 端不知 city，改用 normalizeDistrictKey 線性掃（PATTERNS line 280-292）
+// 但 hover 端不知 city，故線性掃 + inline 臺→台 normalisation（PATTERNS line 280-292）
 function findRowForDistrict(districtName) {
 	if (!districtName) return null;
 	const target = String(districtName).replace(/臺/g, "台").trim();
@@ -571,7 +574,7 @@ Hover handler is fully wired. `npm run build` exits 0. CC-04 acceptance #1 + #2 
 
 <verification>
 - `npm run build` exit 0
-- `grep -c "setFeatureState" Taipei-City-Dashboard-FE/src/views/CrossCompareView.vue` ≥ 2 (setHover function: 1 declaration usage)
+- `grep -c "setFeatureState" Taipei-City-Dashboard-FE/src/views/CrossCompareView.vue` ≥ 1 (one call inside setHover; both hover-on and hover-off route through that function)
 - `grep -c "createApp(DistrictPopup" Taipei-City-Dashboard-FE/src/views/CrossCompareView.vue` ≥ 1
 - `grep -c "popup.remove\|popupApp.unmount" Taipei-City-Dashboard-FE/src/views/CrossCompareView.vue` ≥ 2 (T-03-04-02 mitigation)
 - `grep -c "map.on(\"mouse" Taipei-City-Dashboard-FE/src/views/CrossCompareView.vue` ≥ 3 (mousemove + mouseenter + mouseleave)
