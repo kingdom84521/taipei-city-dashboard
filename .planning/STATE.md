@@ -3,27 +3,27 @@ gsd_state_version: 1.0
 milestone: v2.3
 milestone_name: Cross-Compare Hexbin Heatmap
 status: Ready for Phase 2 (FE Cross-Compare Page)
-last_updated: "2026-05-02T18:21:14.000Z"
-last_activity: 2026-05-03 — Phase 1 shipped; CC-05 + CC-06 verified end-to-end (`GET /api/v1/crosscompare/scores?view=` returns 41/12 rows, view whitelist enforced, public-readable)
+last_updated: "2026-05-03T00:00:00.000Z"
+last_activity: 2026-05-03 — Phase 2 context gathered (CONTEXT.md + DISCUSSION-LOG.md committed); ready for /gsd-plan-phase 2
 progress:
   total_phases: 3
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
 ---
 
 # State — Milestone v2.3 (Cross-Compare Hexbin Heatmap)
 
 ## Current Position
 
-- **Phase:** 1 (BE District Score API) — **COMPLETE** ✓
-- **Plan:** `.planning/phases/01-be-district-score-api/PLAN.md`
-- **Status:** Ready for Phase 2 (FE Cross-Compare Page)
-- **Last activity:** 2026-05-03 — Phase 1 shipped; CC-05 + CC-06 verified end-to-end (`GET /api/v1/crosscompare/scores?view=` returns 41/12 rows, view whitelist enforced, public-readable)
+- **Phase:** 2 (FE Cross-Compare Page) — context gathered, ready for plan
+- **Context:** `.planning/phases/02-fe-cross-compare-page/02-CONTEXT.md`
+- **Status:** Ready for `/gsd-plan-phase 2`
+- **Last activity:** 2026-05-03 — Phase 2 context captured under `--auto`; 4 gray areas resolved (render substrate, store/map architecture, page chrome, colour ramp)
 
 ## Active Phase
 
-(none yet)
+Phase 2 — FE Cross-Compare Page (CC-01, CC-02, CC-03)
 
 ## Accumulated Context
 
@@ -50,7 +50,7 @@ progress:
 ## Next Step
 
 ```
-/gsd-plan-phase 1
+/gsd-plan-phase 2
 ```
 
-Phase 1 (BE Hex Region API) plans the GORM model, controller, route registration, and seed-data SQL.
+Phase 2 (FE Cross-Compare Page) plans the new Vue route, dedicated `crossCompareStore.js`, the Mapbox-native fill layers (with feature-state seam for Phase 3 hover), the floating toggle/legend chrome, and runtime discovery of the vector-tile join key with 臺/台 normalization.
