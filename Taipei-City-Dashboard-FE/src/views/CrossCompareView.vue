@@ -25,9 +25,11 @@ import {
 	CROSSCOMPARE_FILL_LAYER_ID,
 	CROSSCOMPARE_GREY_LAYER_ID,
 	CROSSCOMPARE_GREY_LINE_LAYER_ID,
+	CROSSCOMPARE_EXTRUSION_LAYER_ID,
 	buildFillPaint,
 	buildGreyPaint,
 	buildLinePaint,
+	buildExtrusionPaint,
 } from "../assets/configs/crossCompareConfig";
 import ViewToggle from "../components/crosscompare/ViewToggle.vue";
 import RampLegend from "../components/crosscompare/RampLegend.vue";
@@ -126,6 +128,16 @@ function addCrossCompareLayers() {
 		id: CROSSCOMPARE_GREY_LINE_LAYER_ID,
 		type: "line",
 		paint: buildLinePaint(),
+	});
+
+	// 4. extrusion layer (上層) — D-02：與 active fill 共生，由 feature-state.hover 驅動
+	//    paint 表達式 + transition 一併設定；JS 端只透過 setFeatureState 改 hover 狀態（Plan 03-04）
+	//    rest 時 fill-extrusion-height = 0 → 視覺上與 Phase 2 平面 fill 完全一致
+	map.addLayer({
+		...baseLayer,
+		id: CROSSCOMPARE_EXTRUSION_LAYER_ID,
+		type: "fill-extrusion",
+		paint: buildExtrusionPaint(store.rampDomain, store.scoreByDistrict),
 	});
 }
 

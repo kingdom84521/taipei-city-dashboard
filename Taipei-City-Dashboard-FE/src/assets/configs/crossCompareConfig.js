@@ -32,6 +32,16 @@ export const CROSSCOMPARE_GREY_LAYER_ID = "crosscompare_fill_greyed";
 export const CROSSCOMPARE_GREY_LINE_LAYER_ID = "crosscompare_line_greyed";
 
 // ----------------------------------------------------------------------
+// Extrusion layer (Phase 3 / CC-04 — hover-driven levitate)
+// ----------------------------------------------------------------------
+// 與 active fill 同層（同一個 source / source-layer）但 type:"fill-extrusion"，
+// 由 feature-state.hover 驅動 fill-extrusion-height 在 0 ↔ EXTRUSION_HEIGHT_HOVER 之間切換。
+// EXTRUSION_TRANSITION_MS < 200 滿足 CC-04 acceptance #1（150ms + 50ms 餘裕）。
+export const CROSSCOMPARE_EXTRUSION_LAYER_ID = "crosscompare_extrusion_active";
+export const EXTRUSION_HEIGHT_HOVER = 4000;     // 公尺（hover 時的 levitate 高度）
+export const EXTRUSION_TRANSITION_MS = 150;     // < 200ms（D-04 + 預留餘裕）
+
+// ----------------------------------------------------------------------
 // Join key on vector tile features (D-13)
 // 強烈假設為 TNAME — mapConfig.js lines 55 + 89 的 label layer 也用 ["get", "TNAME"]
 // CrossCompareView load handler 還是會跑一次 runtime probe 確認，但 paint 表達式直接寫死 TNAME
@@ -153,5 +163,36 @@ export function buildLinePaint() {
 		"line-color": CROSSCOMPARE_RAMP.greyLine,
 		"line-width": 0.6,
 		"line-opacity": 0.6,
+	};
+}
+
+/**
+ * 啟用區的 fill-extrusion paint（CC-04）：
+ *   - color  與 buildFillPaint() 一致（lifted top + sides 維持分數色，D-05）
+ *   - height case-on-feature-state — hover ? EXTRUSION_HEIGHT_HOVER : 0（D-03）
+ *   - transition 設在 paint property 上，由 Mapbox 內建 cubic 緩動（D-04）
+ *
+ * 注意（PATTERNS Concern 2）：fill-extrusion-height 必須是 case + feature-state；
+ *   試圖靠 setPaintProperty(..., "fill-extrusion-height", 4000) 不會動畫。
+ *
+ * @param {[number, number]} domain  [min, max] of total_score
+ * @param {Map<string, {city,district,total_score}>} scoreByDistrict
+ * @returns Mapbox paint object
+ */
+export function buildExtrusionPaint(domain, scoreByDistrict) {
+	const fillPaint = buildFillPaint(domain, scoreByDistrict);
+	return {
+		"fill-extrusion-color": fillPaint["fill-color"],
+		"fill-extrusion-opacity": 0.85,
+		"fill-extrusion-height": [
+			"case",
+			["boolean", ["feature-state", "hover"], false],
+			EXTRUSION_HEIGHT_HOVER,
+			0,
+		],
+		"fill-extrusion-height-transition": {
+			duration: EXTRUSION_TRANSITION_MS,
+			delay: 0,
+		},
 	};
 }
