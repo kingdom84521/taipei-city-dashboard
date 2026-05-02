@@ -3,75 +3,69 @@ slug: datalab-scaffold
 date: 2026-05-02
 status: in-progress
 type: investigation+scaffold
+revision: 2
 ---
 
 # DataLab — 全新 dataview 注入點
 
-## 目標
+## 目標(修正後)
 
-找出一個可以放入「完全不同意義的功能組件集」的位置,並建立外部進入點。需求:
+在 MapView 路由下開出一個 synthetic `index=datalab`,從左側 SideBar 進入,
+NavBar 與 SideBar 一直保留(殼層不變),只把右側內容區整個換成 DataLab 元件集。
 
-1. 專案架構下允許寫入 N 個 component
-2. 可獨立或巢狀放置一個 router,導向到看得到這些頁面的總 view route
-3. View 上必須乾淨,不得有其他顯示其他資料的 component
+需求:
+1. 專案架構下允許寫入 N 個 component(放 `src/datalab/components/`)
+2. 進入點 = SideBar 上的固定 entry,連結到 `/mapview?index=datalab`
+3. 右側內容區乾淨,不顯示任何其他 dashboard 的資料 component
 
-## 關鍵架構發現
+## 設計決策
 
-`Taipei-City-Dashboard-FE/src/App.vue` 是全局殼層控制器,依 `authStore.currentPath`(由 `router.beforeEach` 設為 `route.name`)分支渲染不同 layout:
+**不新增 route。** 沿用 `/mapview` route name,DataLab 是該 route 上的 synthetic index
+(類似既有 `map-layers` 那個特殊 index 的處理模式)。好處:
 
-| currentPath | 渲染內容 |
-|---|---|
-| `dashboard` / `mapview` | NavBar + SideBar + SettingsBar |
-| `admin*` | NavBar + AdminSideBar |
-| `component` / `component-info` | NavBar + ComponentSideBar |
-| `embed` | **僅** `<router-view />`(NavBar 被 `v-if` 排除)|
-| 其他 | NavBar + 裸 `<router-view />` |
+- NavBar / SideBar / `App.vue` layout 分支完全不動 — 殼層自然保留
+- 不需要新的 route 守門邏輯、mobile allow-list、auth gate
+- `MapView.vue` 已存在按 index 分支 render 內容的 pattern,只是再加一個前置分支
+- BE 不需要新 dashboard 資料
 
-只有 `embed` 是真正乾淨的(無 NavBar/SideBar/SettingsBar)。
+## 變更檔案
 
-「N 個 component 子套件」的既有先例是 `src/dashboardComponent/`:獨立目錄、有獨立 `LICENSE`、~20 個圖表元件,由 `EmbedView.vue` 透過 `/embed/:id/:city` 掛載。
+| 動作 | 檔案 | 用途 |
+|---|---|---|
+| 新增 | `src/datalab/DataLabPanel.vue` | DataLab 內容容器,N 個 component 掛這裡 |
+| 新增 | `src/datalab/components/`(目錄) | 放各個 component |
+| 新增 | `src/datalab/README.md` | 使用指南 |
+| 新增 | `src/components/utilities/miscellaneous/SideBarLink.vue` | SideBar 直接連結用元件(非 `?index=` 慣例,支援含 query 的 to) |
+| 編輯 | `src/views/MapView.vue` | 最頂層加 `v-if="isDataLab"`(`route.query.index === 'datalab'`),render `DataLabPanel`,搶在所有 dashboard 分支前 |
+| 編輯 | `src/components/utilities/bars/SideBar.vue` | 在「公共儀表板」上方加「工具」section + DataLab `SideBarLink` |
+| 編輯 | `src/store/contentStore.js` | `setRouteParams` 內偵測 `index === "datalab"` 時 early-return,**避免 `setCurrentDashboardAllContent` 找不到 dashboard 而 router.replace 把 user 踢回第一個真實 dashboard** |
 
-## 候選路線
+## 為何加 contentStore 那條 early-return
 
-### 路線 A — 純 view + flat route(最少改動)
-路由 name 不在 App.vue 認得的清單裡 → 落到裸 `<router-view />` 分支 — **但 NavBar 還在**。不符合「乾淨」要求。**淘汰。**
+未處理會發生:
+1. User 點 DataLab → URL 變 `/mapview?index=datalab`
+2. `App.vue` watch route.query 觸發 setRouteParams → setCurrentDashboardAllContent
+3. dashboards Map 找不到 index "datalab" → 線 227-248 自動 `router.replace` 到第一個 dashboard
+4. User 被踢走,DataLab 永遠進不去
 
-### 路線 B — 鏡射 embed pattern(採用)✅
-1. 新增子套件目錄 `src/datalab/`
-2. 新增 view `src/views/DataLabView.vue`
-3. `src/router/index.js` 加 1 條 route(name `datalab`)+ 加入 mobile allow-list
-4. 改 `src/App.vue:224` 的 NavBar `v-if` 排除 `datalab`
+加 early-return 後 setRouteParams 直接帶過,不啟動 redirect 邏輯。
 
-外部進入點 = URL `/datalab`。第三個 `beforeEach`(line 138-161)只 gate `admin*` / `component` / `component-info`,新 route 不會被擋,可未登入訪問。
+## 已 rollback 的東西(來自上一個 commit `fc9afb18`)
 
-### 路線 C — 巢狀子路由(預留升級空間)
-若之後會長出 `/datalab/:section`,改用 Vue Router children + `<router-view />` 在 `DataLabView.vue` 內。**本 scaffold 預留:** `DataLabView.vue` 留 `<router-view />` 掛載點 + 註解說明轉換方式,不限制日後 flat 或 nested。
+- `src/views/DataLabView.vue`(原本要做的獨立 view)— 不再需要
+- `src/router/index.js` 的 `datalab` route + mobile allow-list — 不再需要
+- `src/App.vue` 的 NavBar v-if 排除 datalab — 不再需要(殼層要保留)
+- `src/App.vue` 的 datalab 專屬 layout 分支 — 不再需要
+- `src/components/utilities/miscellaneous/SideBarTab.vue` 的 basePath 修正 — 不再需要(現在 /mapview 上跑,route.path 還是 /mapview,沒問題)
 
-## 為什麼不選其他位置
-
-- ❌ `src/views/admin/` — 受 `is_admin` 鎖,不是「外部進入點」
-- ❌ 直接擴充 `src/dashboardComponent/` — 它有獨立 LICENSE 是給 `/embed` iframe 用的發布套件
-- ❌ 沿用 `EmbedView.vue` — 寫死從 `/component/:id/all` 取資料,重用會被既有資料流綁住
-
-## Scaffold 實作清單(本次執行)
-
-| 動作 | 檔案 |
-|---|---|
-| 新建目錄 | `Taipei-City-Dashboard-FE/src/datalab/`(放 N 個 components 用)|
-| 新建檔 | `Taipei-City-Dashboard-FE/src/datalab/README.md`(說明此目錄用途)|
-| 新建檔 | `Taipei-City-Dashboard-FE/src/views/DataLabView.vue`(空殼,內含 `<router-view />` 預留巢狀)|
-| 編輯 | `Taipei-City-Dashboard-FE/src/router/index.js`:加 `datalab` route + mobile allow-list |
-| 編輯 | `Taipei-City-Dashboard-FE/src/App.vue`:NavBar `v-if` 加入 `datalab` 排除 |
+保留的:
+- `src/datalab/` 目錄(改寫 README,新增 DataLabPanel.vue)
+- `SideBarLink.vue`(就地擴充支援 query 比對)
 
 ## 驗收條件
 
-- 啟動 dev server 後,瀏覽 `/datalab` 頁面 → 200 OK,無 NavBar/SideBar/SettingsBar
-- 頁面上沒有任何顯示其他資料的 component(空 view)
-- 後續可在 `src/datalab/` 內加任意 N 個 component 並 import 進 `DataLabView.vue`
-- 後續可改用 children 改成巢狀 routes 而不需動其他結構
-
-## 後續(本 scaffold 不做)
-
-- 實際的功能組件 — 等使用者決定要做什麼
-- 是否進一步排除 LogIn 對話框 / ChatBot 浮動按鈕 / NotificationBar(目前 embed 也保留這些,維持 embed-parity)
-- 若需要嚴格無任何 overlay,後續可在 App.vue 把對應 v-if 條件擴充
+- 點 SideBar 的 DataLab → URL 變 `/mapview?index=datalab`,不被 redirect
+- 內容區只渲染 DataLabPanel(目前空白),NavBar 與 SideBar 仍在
+- 切回其他 dashboard 後再回 DataLab,行為一致
+- ESLint pass(已驗證)
+- Vite HMR reload 全部清乾淨,無 console error

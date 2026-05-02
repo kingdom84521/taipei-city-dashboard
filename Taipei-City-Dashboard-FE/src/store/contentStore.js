@@ -88,6 +88,14 @@ export const useContentStore = defineStore("content", {
 		// 1. Check the current path and execute actions based on the current path
 		setRouteParams(mode, index, city) {
 			this.currentDashboard.mode = mode;
+			// DataLab is a synthetic index handled directly by MapView; skip BE dashboard lookup
+			// so the user is not auto-redirected to the first available real dashboard.
+			if (index === "datalab") {
+				this.currentDashboard.city = city;
+				this.currentDashboard.index = index;
+				this.currentDashboard.components = [];
+				return;
+			}
 			// 1-1. Don't do anything if the path is the same
 			if (
 				this.currentDashboard.index === index &&

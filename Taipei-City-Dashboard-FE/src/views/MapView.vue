@@ -21,6 +21,9 @@ import { useMapStore } from "../store/mapStore";
 import MapContainer from "../components/map/MapContainer.vue";
 import MoreInfo from "../components/dialogs/MoreInfo.vue";
 import ReportIssue from "../components/dialogs/ReportIssue.vue";
+import DataLabPanel from "../datalab/DataLabPanel.vue";
+
+const isDataLab = computed(() => route.query.index === "datalab");
 
 const contentStore = useContentStore();
 const dialogStore = useDialogStore();
@@ -141,9 +144,16 @@ function popularBasicLayerGA(map_config) {
 <template>
   <div class="map">
     <div class="hide-if-mobile">
+      <!-- 0. DataLab: virtual index, swaps the entire content area for DataLabPanel. -->
+      <div
+        v-if="isDataLab"
+        class="map-charts"
+      >
+        <DataLabPanel />
+      </div>
       <!-- 1. If the dashboard is map-layers -->
       <div
-        v-if="
+        v-else-if="
           contentStore.currentDashboard.index?.includes('map-layers')
         "
         class="map-charts"
