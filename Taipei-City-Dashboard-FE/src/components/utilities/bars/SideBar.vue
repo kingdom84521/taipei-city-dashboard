@@ -159,8 +159,8 @@ onMounted(() => {
     </h1>
     <SideBarLink
       icon="science"
-      title="DataLab"
-      to="/mapview?index=datalab"
+      title="Make New Thing Here"
+      to="/mapview?index=make-new-thing-here"
       :expanded="isExpanded"
     />
     <h1 @click="toggleCollapse(contentStore.cityManager.activeCities)">

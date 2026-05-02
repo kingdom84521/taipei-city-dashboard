@@ -2,13 +2,13 @@
 </script>
 
 <template>
-  <div class="datalab-panel">
-    <!-- Mount your N components here. This panel renders inside MapView when route.query.index === "datalab". -->
+  <div class="make-new-thing-here-panel">
+    <!-- Mount your N components here. This panel renders inside MapView when route.query.index === "make-new-thing-here". -->
   </div>
 </template>
 
 <style scoped lang="scss">
-.datalab-panel {
+.make-new-thing-here-panel {
 	width: 100%;
 	height: 100%;
 	display: flex;
