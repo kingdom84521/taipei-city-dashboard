@@ -18,6 +18,10 @@ must_haves:
     - "On localhost (hasSourceLayer=false) the source loads as geojson from /mapData/metrotaipei_town.geojson; on prod it loads as vector tile (PATTERNS.md Concern 3)"
     - "onBeforeUnmount calls map.remove() (no leaked Mapbox instance — D-04 owns lifecycle)"
     - "Runtime probe logs a console.warn if sample feature lacks TNAME property (D-13)"
+    - "D-01: choropleth rendered via Mapbox-native fill paint expression (interpolate-hcl on total_score). NO deck.gl layers used for the choropleth body."
+    - "D-03: greyed districts get a SECOND fill layer using the inverted [in, TNAME, ...] filter — toggling 台北 ↔ 雙北 is a one-shot setFilter call (no teardown/rebuild)"
+    - "D-06: map style imported from `../assets/configs/mapbox/mapStyle` (the existing default-export module). NO `dark_map_style.json` file is referenced (it does not exist)."
+    - "D-07: CrossCompareView fills the viewport — full-bleed under NavBar, no sidebar, no top header bar"
   artifacts:
     - path: "Taipei-City-Dashboard-FE/src/views/CrossCompareView.vue"
       provides: "Full Mapbox-mounted view with active fill + greyed fill layers"

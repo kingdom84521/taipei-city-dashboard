@@ -16,6 +16,8 @@ must_haves:
     - "Visiting http://localhost:8080/crosscompare resolves a real Vue view (no 404, no MapView fallback)"
     - "NavBar shows a 跨區比較 entry between 儀表板總覽 and 地圖交叉比對 that navigates to /crosscompare"
     - "/crosscompare does NOT trigger contentStore.setRouteParams (the existing /dashboard, /mapview branch in router.beforeEach is untouched)"
+    - "D-15: file layout shipped per CONTEXT.md — exactly one new view file (CrossCompareView.vue), router edit, NavBar edit; no extras created"
+    - "D-17: /crosscompare is public-readable — NO auth guard added in router.beforeEach, mirrors /dashboard"
   artifacts:
     - path: "Taipei-City-Dashboard-FE/src/views/CrossCompareView.vue"
       provides: "Top-level view scaffold with TUIC banner + empty #crosscompareMapBox div"

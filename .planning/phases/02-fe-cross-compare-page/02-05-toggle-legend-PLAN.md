@@ -20,6 +20,7 @@ must_haves:
     - "Toggling does NOT trigger a second network request (D-18)"
     - "Active toggle button has visible highlighted state (background-color: var(--color-highlight))"
     - "Toggle persists across page reload via localStorage (D-09)"
+    - "D-08: chrome is two floating panels only — toggle anchored top-left, ramp legend anchored bottom-right; no sidebar, no top header bar"
   artifacts:
     - path: "Taipei-City-Dashboard-FE/src/components/crosscompare/ViewToggle.vue"
       provides: "Pill-style 台北 / 雙北 toggle that calls store.setViewMode"
