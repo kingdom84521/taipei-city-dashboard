@@ -2,7 +2,8 @@
 -- Food Hygiene Component Configuration
 -- Target database: dashboardmanager
 --
--- Tables: components, component_charts, component_maps, query_charts
+-- Tables: components, component_charts, component_maps, query_charts,
+--         groups, dashboards, dashboard_groups
 --
 -- Data source: 衛生福利部食品藥物管理署
 -- URL: https://www.fda.gov.tw/TC/siteContent.aspx?sid=13591
@@ -85,6 +86,42 @@ SELECT setval('public.component_maps_id_seq', GREATEST((SELECT MAX(id) FROM publ
 -- -----------------------------------------------
 -- query_charts
 -- -----------------------------------------------
+
+-- -----------------------------------------------
+-- groups
+-- -----------------------------------------------
+
+INSERT INTO public.groups (name, is_personal, create_by)
+SELECT 'metrotaipei', false, (SELECT MIN(id) FROM public.auth_users)
+WHERE NOT EXISTS (SELECT 1 FROM public.groups WHERE name = 'metrotaipei');
+
+-- -----------------------------------------------
+-- dashboards
+-- -----------------------------------------------
+
+INSERT INTO public.dashboards (index, name, components, icon, updated_at, created_at)
+SELECT
+    'food_safety_health_metrotaipei',
+    '食安健康',
+    ARRAY[(SELECT id FROM public.components WHERE index = 'food_hygiene_tp')],
+    'restaurant',
+    NOW(),
+    NOW()
+ON CONFLICT (index) DO NOTHING;
+
+-- -----------------------------------------------
+-- dashboard_groups
+-- -----------------------------------------------
+
+INSERT INTO public.dashboard_groups (group_id, dashboard_id)
+SELECT g.id, d.id
+FROM public.groups g, public.dashboards d
+WHERE g.name = 'metrotaipei'
+  AND d.index = 'food_safety_health_metrotaipei'
+  AND NOT EXISTS (
+      SELECT 1 FROM public.dashboard_groups
+      WHERE group_id = g.id AND dashboard_id = d.id
+  );
 
 DELETE FROM public.query_charts WHERE index = 'food_hygiene_tp';
 
