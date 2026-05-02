@@ -35,6 +35,7 @@ func ConfigureRoutes() {
 	configureLMRoutes()
 	configureComponentRoutes()
 	configureDashboardRoutes()
+	configureCrossCompareRoutes()
 	configureIssueRoutes()
 	configureIncidentRoutes()
 	// configureWsRoutes()
@@ -148,6 +149,16 @@ func configureDashboardRoutes() {
 		dashboardRoutes.POST("/public", controllers.CreatePublicDashboard)
 		dashboardRoutes.GET("/check-index/:index", controllers.CheckDashboardIndex)
 	}
+}
+
+func configureCrossCompareRoutes() {
+	crossCompareRoutes := RouterGroup.Group("/crosscompare")
+	crossCompareRoutes.Use(middleware.LimitAPIRequests(global.DashboardLimitAPIRequestsTimes, global.LimitRequestsDuration))
+	crossCompareRoutes.Use(middleware.LimitTotalRequests(global.DashboardLimitTotalRequestsTimes, global.LimitRequestsDuration))
+	{
+		crossCompareRoutes.GET("/scores", controllers.GetCrossCompareScores)
+	}
+	// No IsLoggedIn — public-readable like /dashboard GETs.
 }
 
 func configureIssueRoutes() {
