@@ -99,6 +99,13 @@ phase_count: 3
 - Edit: `Taipei-City-Dashboard-FE/src/components/utilities/bars/SideBar.vue` line 163 — remove the synthetic-index `to="/mapview?index=make-new-thing-here"` link
 - Verify: `npm run build` passes; no new ESLint warnings
 
+**Plans:** 5 plans
+- [ ] 03-01-extrusion-config-PLAN.md — Extrusion constants + buildExtrusionPaint() in crossCompareConfig.js + new fill-extrusion companion layer in CrossCompareView.vue (CC-04 / D-01..D-05)
+- [ ] 03-02-district-popup-PLAN.md — Create DistrictPopup.vue popup body SFC (5 camelCase props, mustache-only, theme CSS vars) (CC-04 / D-06..D-10, D-21)
+- [ ] 03-03-mnth-removal-PLAN.md — Remove make-new-thing-here from MapView.vue + SideBar.vue + contentStore.js (D-17b 6th site) + delete directory; v-else-if→v-if rewrite (CC-04 / D-15..D-19)
+- [ ] 03-04-hover-handler-PLAN.md — Wire hover handler in CrossCompareView.vue: layer-scoped events + setFeatureState + popup mount via createApp(DistrictPopup, props) + paired unmount/remove teardown (CC-04 / D-11..D-14, D-22, D-23)
+- [ ] 03-05-acceptance-PLAN.md — Final build + grep-zero gate + 23 D-ID audit + 4 threat audit + 03-PHASE-SUMMARY.md + browser smoke checkpoint (CC-04 acceptance)
+
 ---
 
 ## Coverage Validation
