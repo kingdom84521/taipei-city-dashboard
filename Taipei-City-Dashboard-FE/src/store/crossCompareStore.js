@@ -24,7 +24,7 @@ function readStoredViewMode() {
 		if (raw && VALID_VIEW_MODES.includes(raw)) {
 			return raw;
 		}
-	} catch (err) {
+	} catch {
 		// localStorage 在 SSR / 隱私模式下可能無法存取 — 回到預設
 	}
 	return DEFAULT_VIEW_MODE;
@@ -118,7 +118,7 @@ export const useCrossCompareStore = defineStore("crossCompare", {
 					params: { view: "metrotaipei" },
 				});
 				this.scores = response.data?.data ?? [];
-			} catch (err) {
+			} catch {
 				// axios interceptor (router/axios.js) 已彈出本地化 toast；這裡只記錄狀態
 				this.error = true;
 				this.scores = [];
@@ -130,14 +130,13 @@ export const useCrossCompareStore = defineStore("crossCompare", {
 		setViewMode(mode) {
 			if (!VALID_VIEW_MODES.includes(mode)) {
 				// 不丟例外，只是忽略（呼叫端不應該丟非白名單值，但 defensive 寫法）
-				// eslint-disable-next-line no-console
 				console.warn(`[crossCompareStore] rejected invalid viewMode: ${mode}`);
 				return;
 			}
 			this.viewMode = mode;
 			try {
 				localStorage.setItem(STORAGE_KEY, mode);
-			} catch (err) {
+			} catch {
 				// 隱私模式下寫入失敗 — 不阻塞 UI
 			}
 		},
