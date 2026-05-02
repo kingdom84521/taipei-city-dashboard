@@ -74,6 +74,13 @@ const isLocalhost = computed(() => {
         儀表板總覽
       </router-link>
       <router-link
+        :to="`/crosscompare${
+          linkQuery.includes('undefined') ? '' : linkQuery
+        }`"
+      >
+        跨區比較
+      </router-link>
+      <router-link
         :to="`/mapview${
           linkQuery.includes('undefined') ? '' : linkQuery
         }`"
