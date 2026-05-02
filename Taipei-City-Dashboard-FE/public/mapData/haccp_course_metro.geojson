@@ -1,0 +1,209 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.5440555,
+          25.0431831
+        ]
+      },
+      "properties": {
+        "type": "HACCP課程",
+        "city": "臺北市",
+        "district": "大安區",
+        "address": "台北市大安區復興南路一段127號",
+        "organizer": "財團法人台灣食品產業策進會"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.4580659,
+          25.023157
+        ]
+      },
+      "properties": {
+        "type": "HACCP課程",
+        "city": "新北市",
+        "district": "板橋區",
+        "address": "新北市板橋區英士路192-1號",
+        "organizer": "新北市政府衛生局"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.4651279,
+          25.0210986
+        ]
+      },
+      "properties": {
+        "type": "HACCP課程",
+        "city": "新北市",
+        "district": "板橋區",
+        "address": "新北市板橋區文化路一段313號",
+        "organizer": "財團法人慈寶安全衛生環境科學暨社會福利基金會"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.4507337,
+          25.0614433
+        ]
+      },
+      "properties": {
+        "type": "HACCP課程",
+        "city": "新北市",
+        "district": "五股區",
+        "address": "新北市五股區五工六路9號",
+        "organizer": "社團法人中華食品安全管制系統發展協會"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.521805,
+          25.0625824
+        ]
+      },
+      "properties": {
+        "type": "衛生講習課程",
+        "city": "臺北市",
+        "district": "中山區",
+        "address": "台北市中山區民權西路20號",
+        "organizer": "台北市烹飪商業同業公會"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.5158208,
+          25.0457716
+        ]
+      },
+      "properties": {
+        "type": "衛生講習課程",
+        "city": "臺北市",
+        "district": "中正區",
+        "address": "台北市中正區忠孝西路一段50號",
+        "organizer": "中華餐飲業產業工會"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.5421958,
+          24.9950888
+        ]
+      },
+      "properties": {
+        "type": "衛生講習課程",
+        "city": "臺北市",
+        "district": "文山區",
+        "address": "台北市文山區景華街21號",
+        "organizer": "中華民國廚師職業工會全國總工會"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.5131059,
+          25.0466069
+        ]
+      },
+      "properties": {
+        "type": "衛生講習課程",
+        "city": "臺北市",
+        "district": "中正區",
+        "address": "台北市中正區重慶南路一段10號6樓",
+        "organizer": "台北市廚師業職業工會"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.580715,
+          25.0578899
+        ]
+      },
+      "properties": {
+        "type": "衛生講習課程",
+        "city": "臺北市",
+        "district": "內湖區",
+        "address": "台北市內湖區舊宗路1段18號",
+        "organizer": "台北市餐飲業職業工會"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.5329768,
+          25.0606289
+        ]
+      },
+      "properties": {
+        "type": "衛生講習課程",
+        "city": "臺北市",
+        "district": "中山區",
+        "address": "臺北市中山區松江路350號",
+        "organizer": "台北市進出口商業同業公會"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.528482,
+          25.0311585
+        ]
+      },
+      "properties": {
+        "type": "衛生講習課程",
+        "city": "臺北市",
+        "district": "大安區",
+        "address": "臺北市大安區金華街199巷5號",
+        "organizer": "社團法人中華食品安全管制系統發展協會"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.5397518,
+          25.0173405
+        ]
+      },
+      "properties": {
+        "type": "衛生講習課程",
+        "city": "臺北市",
+        "district": "大安區",
+        "address": "台北市大安區羅斯福路四段1號",
+        "organizer": "國立台灣大學膳食協調委員會"
+      }
+    }
+  ]
+}
