@@ -24,20 +24,31 @@ Currently shipping at app version `2.2.0` (Helm chart). Local dev stack is `dock
 
 Make Taipei's open data legible to the people who shape policy — and to the citizens those policies affect — through a single, interactive, map-first dashboard. New visualizations earn their place only if they reveal something a chart alone cannot.
 
-## Current Milestone: v2.3 Cross-Compare Hexbin Heatmap
+## Current Milestone: v2.3 Cross-Compare District Score Heatmap
 
-**Goal:** Add a new top-level page (sibling to `/dashboard` and `/mapview`) that renders a hexbin heatmap of pre-scored regions, supporting two view modes — Taipei-only and dual-Taipei (台北 + 新北) — with hover interactions.
+> **Scope correction (2026-05-03):** Originally planned as a "hexbin" heatmap.
+> After receiving real fixture data
+> (`.planning/fixtures/crosscompare_scores_v1.json`), the unit is
+> **administrative district** (41 rows: 12 臺北市 + 29 新北市), not hex bins,
+> and district polygons already exist as Mapbox vector tiles in
+> `mapConfig.js` (`tp_district`, `metrotaipei_town`). The deliverable is now a
+> **district choropleth** with the same UX (toggle + grey-out + levitate
+> hover). Milestone label keeps "Hexbin" wording in older artifacts only for
+> historical traceability.
+
+**Goal:** Add a new top-level page (sibling to `/dashboard` and `/mapview`) that renders a district choropleth of pre-scored 雙北 districts, supporting two view modes — Taipei-only and dual-Taipei (台北 + 新北) — with hover interactions.
 
 **Target features:**
 - New `/crosscompare` route with its own view component, NavBar entry, and route guards (replacing the `make-new-thing-here` synthetic-index hack inside MapView)
-- Hexbin heatmap rendered from BE-supplied region polygons + score values (no client-side aggregation)
-- Two view modes — when "台北" is active, 新北 hexes render greyed-out and become non-interactive; when "雙北" is active, both render fully
-- Hover interaction on enabled hexes: a "levitate" animation (deck.gl extrusion lift / scale) plus a popup showing the region's score
+- District choropleth rendered from BE-supplied per-district scores joined to existing Mapbox vector tile polygons (`tp_district`, `metrotaipei_town`) — no client-side aggregation, no PostGIS hex generation
+- Two view modes — when "台北" is active, 新北 districts render greyed-out and become non-interactive; when "雙北" is active, both render fully
+- Hover interaction on enabled districts: a "levitate" animation (deck.gl extrusion lift / scale OR Mapbox `feature-state`-driven `fill-extrusion-height` transition) plus a popup showing district name, total_score, rank, and per-component scores
 - Stack constraint: **must use only existing FE packages** — `deck.gl/{core,layers,mapbox}` 9.x, `mapbox-gl` 3.x, `@turf/turf` 6.5. Adding `@deck.gl/aggregation-layers`, `d3-hexbin`, or `h3-js` is not allowed.
 
 **Key context:**
-- Scoring data is supplied by us (TUIC team) — pre-computed regions + scores, no aggregation logic in this milestone.
-- v1 may use fake/seeded scores. Real data feed comes later.
+- Scoring data is supplied by TUIC team — fixture in `.planning/fixtures/crosscompare_scores_v1.json` (41 districts ranked, formula: `course_score = courses/59*40` + `inspection_score = rate/16.4557*60`).
+- District polygons reuse existing vector tile layers — no new tilesets to upload.
+- v1 ships with the supplied fixture as the BE seed; real data feed (Airflow DAG recomputing scores) is a future milestone.
 - `make-new-thing-here` (mounted inside MapView via query-string sniffing) was deliberately the wrong design — it bypassed router for prototype convenience. New page must use the real routing pattern (see `Taipei-City-Dashboard-FE/src/router/index.js`).
 
 ## Requirements
@@ -56,11 +67,11 @@ Make Taipei's open data legible to the people who shape policy — and to the ci
 ### Active (this milestone — v2.3 hypotheses, validate by shipping)
 
 - [ ] **CC-01**: User can navigate to `/crosscompare` from NavBar and land on a new view
-- [ ] **CC-02**: User can switch between "台北" and "雙北" view modes; non-active region greys out and is not hoverable
-- [ ] **CC-03**: User sees hexbin polygons coloured by score (sequential color ramp), rendered with deck.gl PolygonLayer/GeoJsonLayer over Mapbox base
-- [ ] **CC-04**: User hovers an enabled hex → hex visually "levitates" (extrusion lift / scale) and a popup shows the region name + score
-- [ ] **CC-05**: BE serves `GET /api/v1/crosscompare/hex?view=taipei|metrotaipei` returning GeoJSON features (`{ properties: { region_id, region_name, city, score }, geometry: Polygon }`)
-- [ ] **CC-06**: BE schema has a hex/region table (PostGIS GEOMETRY column) seeded with at least one valid set of fake regions + scores covering 台北市 and 新北市
+- [ ] **CC-02**: User can switch between "台北" and "雙北" view modes; non-active districts grey out and become non-hoverable
+- [ ] **CC-03**: User sees each enabled district filled with a sequential-ramp colour keyed to `total_score`, rendered via existing Mapbox vector source layers (`tp_district`, `metrotaipei_town`) — no new tilesets, no hex generation
+- [ ] **CC-04**: User hovers an enabled district → district visually "levitates" (extrusion lift / scale) and a popup shows district name + total_score + rank + per-component scores
+- [ ] **CC-05**: BE serves `GET /api/v1/crosscompare/scores?view=taipei|metrotaipei` returning JSON `{status, data:[{city, district, rank, courses, food_businesses, inspected, not_inspected, inspection_rate, course_score, inspection_score, total_score}, ...]}`
+- [ ] **CC-06**: BE schema has a regular (non-PostGIS) `crosscompare_district_score` table keyed by `(city, district)`, seeded from `.planning/fixtures/crosscompare_scores_v1.json` (41 rows: 12 臺北市 + 29 新北市)
 
 ### Out of Scope (explicit exclusions for v2.3)
 
@@ -77,11 +88,12 @@ Make Taipei's open data legible to the people who shape policy — and to the ci
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | New top-level route `/crosscompare` (not synthetic-index hack) | `make-new-thing-here` bypasses router — explicitly called out as wrong design by user. Standard pattern: register in `src/router/index.js`, add `<router-link>` in `src/components/utilities/bars/NavBar.vue` | Pending — implement in Phase 2 |
-| BE-side region storage + endpoint, no client aggregation | User will supply scores per region; FE just renders. PostGIS GEOMETRY for hex polygons. Avoids the `@turf/hexGrid` performance concern raised earlier | Pending — implement in Phase 1 |
-| Stay on installed deck.gl/turf/mapbox-gl; no new packages | User constraint. Means no `HexagonLayer` / `H3HexagonLayer` — render hexes as plain `PolygonLayer` / `GeoJsonLayer` features and color-map by score property | Pending — verify in Phase 2 |
-| Two view modes with grey-out, not side-by-side | User chose "台北 / 雙北" toggle with disabled hex greying instead of dual canvas — cleaner UX, fewer Mapbox instances | Pending — implement in Phase 2 |
-| Hover "levitate" animation via deck.gl extrusion transition | Stays within installed deck.gl 9 capabilities (`updateTriggers` + `getElevation` accessor); no extra animation library | Pending — implement in Phase 3 |
-| Fake/seeded scores acceptable for v1 | User: "都塞假資料 會亮就好". Scoring algorithm is out of scope this milestone | Accepted |
+| BE-side score storage + endpoint, no client aggregation | User will supply scores per district; FE just renders. Avoids the `@turf/hexGrid` performance concern raised earlier | Pending — implement in Phase 1 |
+| **District-level (not hex) — reuse existing Mapbox vector tiles** | Real fixture data (2026-05-03) is district-aggregated, and `tp_district` + `metrotaipei_town` source layers already exist in `mapConfig.js`. Eliminates need for PostGIS hex generation. Lower BE complexity, lower bundle weight, sharper visualisation | Pending — implement in Phase 2 |
+| Stay on installed deck.gl/turf/mapbox-gl; no new packages | User constraint. Means no `HexagonLayer` / `H3HexagonLayer` — colour districts via Mapbox `match` paint expressions or deck.gl `PolygonLayer` over the same polygons | Pending — verify in Phase 2 |
+| Two view modes with grey-out, not side-by-side | User chose "台北 / 雙北" toggle with disabled district greying instead of dual canvas — cleaner UX, fewer Mapbox instances | Pending — implement in Phase 2 |
+| Hover "levitate" animation via deck.gl extrusion transition (or Mapbox feature-state) | Stays within installed deck.gl 9 / Mapbox 3 capabilities; no extra animation library. Phase 3 plan picks the smoother of the two | Pending — implement in Phase 3 |
+| v1 BE seeded from supplied fixture | User: "都塞假資料 會亮就好". `.planning/fixtures/crosscompare_scores_v1.json` is the v1 seed; real data feed deferred | Accepted |
 
 ## Constraints
 
