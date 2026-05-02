@@ -18,6 +18,7 @@ import MapView from "../views/MapView.vue";
 import ComponentView from "../views/ComponentView.vue";
 import ComponentInfoView from "../views/ComponentInfoView.vue";
 import EmbedView from "../views/EmbedView.vue";
+import CrossCompareView from "../views/CrossCompareView.vue";
 
 const routes = [
 	{
@@ -33,6 +34,11 @@ const routes = [
 		path: "/dashboard",
 		name: "dashboard",
 		component: DashboardView,
+	},
+	{
+		path: "/crosscompare",
+		name: "crosscompare",
+		component: CrossCompareView,
 	},
 	{
 		path: "/mapview",
