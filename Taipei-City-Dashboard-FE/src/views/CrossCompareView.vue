@@ -55,6 +55,11 @@ function applyEnabledFilter() {
 	if (map.getLayer(CROSSCOMPARE_FILL_LAYER_ID)) {
 		map.setFilter(CROSSCOMPARE_FILL_LAYER_ID, inExpr);
 	}
+	// extrusion layer 也只畫啟用區（否則 height=0 的彩色頂面會蓋過 greyed fill；
+	//   bug：選台北時新北仍會看到色彩 — 修正為和 active fill 同樣的 in-filter）
+	if (map.getLayer(CROSSCOMPARE_EXTRUSION_LAYER_ID)) {
+		map.setFilter(CROSSCOMPARE_EXTRUSION_LAYER_ID, inExpr);
+	}
 	// greyed layer 畫補集（'metrotaipei' 模式下 names 涵蓋所有 41 區，補集為空 → 圖層空）
 	const notExpr = ["!", ["in", ["get", CROSSCOMPARE_JOIN_KEY], ["literal", names]]];
 	if (map.getLayer(CROSSCOMPARE_GREY_LAYER_ID)) {
@@ -62,6 +67,23 @@ function applyEnabledFilter() {
 	}
 	if (map.getLayer(CROSSCOMPARE_GREY_LINE_LAYER_ID)) {
 		map.setFilter(CROSSCOMPARE_GREY_LINE_LAYER_ID, notExpr);
+	}
+}
+
+// 隱藏 base style 中除了 background 以外的所有圖層 — 跨區比較只想要看到行政區，
+// 不要看到山脈 / 河川 / 道路 / 建物等基礎圖資。在 style.load 之後、addLayer 之前呼叫。
+function hideBaseLayers() {
+	if (!map) return;
+	const layers = map.getStyle()?.layers || [];
+	for (const layer of layers) {
+		if (layer.id === "background") continue;
+		// 只動 base style 的圖層，跳過任何 crosscompare_* 圖層（保險：執行順序保證它們此時還沒加進來）
+		if (layer.id.startsWith("crosscompare_")) continue;
+		try {
+			map.setLayoutProperty(layer.id, "visibility", "none");
+		} catch {
+			// 某些圖層可能沒有 layout — 忽略
+		}
 	}
 }
 
@@ -188,6 +210,8 @@ onMounted(async () => {
 	// 3. style.load 之後才能 addSource/addLayer
 	map.on("load", () => {
 		if (!map) return;
+		// 先把 base style 圖層通通藏起來（user 不想看到 山脈 / 河川 / 道路 / 建物 等基礎圖資）
+		hideBaseLayers();
 		addCrossCompareSource();
 		addCrossCompareLayers();
 		styleLoaded = true;
