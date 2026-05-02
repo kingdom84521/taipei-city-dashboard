@@ -221,7 +221,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="app-container">
     <NotificationBar />
-    <NavBar v-if="authStore.currentPath !== 'embed'" />
+    <NavBar v-if="!['embed', 'datalab'].includes(authStore.currentPath)" />
     <!-- /mapview, /dashboard layouts -->
     <div
       v-if="
