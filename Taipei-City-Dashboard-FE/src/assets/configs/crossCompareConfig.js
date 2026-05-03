@@ -49,6 +49,23 @@ export const EXTRUSION_TRANSITION_MS = 150;     // < 200ms（D-04 + 預留餘裕
 export const CROSSCOMPARE_JOIN_KEY = "TNAME";
 
 // ----------------------------------------------------------------------
+// Scoring dimensions (BE: app/services/foodsafety/data.go NORM_BASE)
+// 4 base types — UI lets the user pick a non-empty subset (1-4) and the
+// backend resolves to one of 15 type-combinations stored in
+// district_combined_scores.json. Order is the canonical one used in the
+// JSON file's combinations[] entries (sort by Chinese codepoint).
+// ----------------------------------------------------------------------
+export const CROSSCOMPARE_BASE_TYPES = [
+	{ value: "課程", label: "課程", desc: "HACCP + 衛生講習課程數" },
+	{ value: "檢驗", label: "檢驗", desc: "食品業者檢驗完成率" },
+	{ value: "癌症篩檢", label: "癌症篩檢", desc: "六項癌症篩檢院所數總和" },
+	{ value: "優良評核", label: "優良評核", desc: "衛生優良評核業者家數" },
+];
+export const CROSSCOMPARE_BASE_TYPE_VALUES = CROSSCOMPARE_BASE_TYPES.map(
+	(t) => t.value,
+);
+
+// ----------------------------------------------------------------------
 // Colour ramp (D-10) + greyed-out (D-11)
 // ----------------------------------------------------------------------
 export const CROSSCOMPARE_RAMP = {

@@ -10,13 +10,20 @@ crossCompareStore 拉取後端的各區分數，並衍生出當前 view mode 下
 
 import { defineStore } from "pinia";
 import http from "../router/axios";
-import { normalizeDistrictKey } from "../assets/configs/crossCompareConfig";
+import {
+	normalizeDistrictKey,
+	CROSSCOMPARE_BASE_TYPE_VALUES,
+} from "../assets/configs/crossCompareConfig";
 
 // localStorage 持久化用 key (D-09)
 const STORAGE_KEY = "crossCompare.viewMode";
 // viewMode 白名單 — 防止 localStorage 遭竄改後注入任意字串（threat T-02-02-01）
 const VALID_VIEW_MODES = ["taipei", "metrotaipei"];
 const DEFAULT_VIEW_MODE = "metrotaipei";
+
+// 4 基本評分維度 — UI 多選後組成 BE 的 ?types= 參數；空集合視為「全選」
+const TYPES_STORAGE_KEY = "crossCompare.selectedTypes";
+const DEFAULT_SELECTED_TYPES = [...CROSSCOMPARE_BASE_TYPE_VALUES];
 
 function readStoredViewMode() {
 	try {
@@ -30,12 +37,31 @@ function readStoredViewMode() {
 	return DEFAULT_VIEW_MODE;
 }
 
+function readStoredSelectedTypes() {
+	try {
+		const raw = localStorage.getItem(TYPES_STORAGE_KEY);
+		if (!raw) return [...DEFAULT_SELECTED_TYPES];
+		const parsed = JSON.parse(raw);
+		if (!Array.isArray(parsed)) return [...DEFAULT_SELECTED_TYPES];
+		// 白名單：丟掉非合法值，保留排序由後端來做
+		const valid = parsed.filter((t) =>
+			CROSSCOMPARE_BASE_TYPE_VALUES.includes(t),
+		);
+		// 全空時退回 default — UI 不允許 0 選，BE 也以 0 選視為「全選」
+		return valid.length === 0 ? [...DEFAULT_SELECTED_TYPES] : valid;
+	} catch {
+		return [...DEFAULT_SELECTED_TYPES];
+	}
+}
+
 export const useCrossCompareStore = defineStore("crossCompare", {
 	state: () => ({
 		// 從 BE 取得的原始 rows（snake_case 欄位保留）
 		scores: [],
 		// 當前檢視模式 — 'taipei' 或 'metrotaipei'（D-09，初始值由 initFromStorage 寫入）
 		viewMode: DEFAULT_VIEW_MODE,
+		// 當前評分維度（4 取 N，N >= 1）— BE 會 dedupe + sort 後對到 15 種 combination 之一
+		selectedTypes: [...DEFAULT_SELECTED_TYPES],
 		loading: false,
 		error: false,
 	}),
@@ -105,18 +131,26 @@ export const useCrossCompareStore = defineStore("crossCompare", {
 		},
 	},
 	actions: {
-		// 在 view onMounted 第一行呼叫 — 從 localStorage 還原 viewMode（白名單驗證）
+		// 在 view onMounted 第一行呼叫 — 從 localStorage 還原 viewMode + selectedTypes
 		initFromStorage() {
 			this.viewMode = readStoredViewMode();
+			this.selectedTypes = readStoredSelectedTypes();
 		},
 		// 單次 fetch（D-18）— BE 一律回 41 筆 metrotaipei 資料；前端做 client-side filter
+		// types 改變時也呼叫一次 — BE 會依當前 selectedTypes 跑 TWCC 或回 JSON fallback
 		async fetchScores() {
 			this.loading = true;
 			this.error = false;
 			try {
-				const response = await http.get("/crosscompare/scores", {
-					params: { view: "metrotaipei" },
-				});
+				const params = { view: "metrotaipei" };
+				// 全選時不傳 types — BE 預設值就是全 4 種；少送 query 字省 URL
+				if (
+					this.selectedTypes.length > 0 &&
+					this.selectedTypes.length < CROSSCOMPARE_BASE_TYPE_VALUES.length
+				) {
+					params.types = this.selectedTypes.join(",");
+				}
+				const response = await http.get("/crosscompare/scores", { params });
 				this.scores = response.data?.data ?? [];
 			} catch {
 				// axios interceptor (router/axios.js) 已彈出本地化 toast；這裡只記錄狀態
@@ -136,6 +170,24 @@ export const useCrossCompareStore = defineStore("crossCompare", {
 			this.viewMode = mode;
 			try {
 				localStorage.setItem(STORAGE_KEY, mode);
+			} catch {
+				// 隱私模式下寫入失敗 — 不阻塞 UI
+			}
+		},
+		// 切換評分維度集合 — 白名單 + 至少 1 個（UI 端要禁 0 選，store 也守一道）
+		// 不會自動 fetch；caller (CrossCompareView watcher) 負責 trigger fetchScores
+		setSelectedTypes(types) {
+			if (!Array.isArray(types)) return;
+			const valid = types.filter((t) =>
+				CROSSCOMPARE_BASE_TYPE_VALUES.includes(t),
+			);
+			if (valid.length === 0) {
+				console.warn("[crossCompareStore] rejected empty selectedTypes");
+				return;
+			}
+			this.selectedTypes = valid;
+			try {
+				localStorage.setItem(TYPES_STORAGE_KEY, JSON.stringify(valid));
 			} catch {
 				// 隱私模式下寫入失敗 — 不阻塞 UI
 			}

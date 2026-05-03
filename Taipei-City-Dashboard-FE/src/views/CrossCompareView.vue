@@ -33,6 +33,7 @@ import {
 } from "../assets/configs/crossCompareConfig";
 import ViewToggle from "../components/crosscompare/ViewToggle.vue";
 import RampLegend from "../components/crosscompare/RampLegend.vue";
+import TypeSelector from "../components/crosscompare/TypeSelector.vue";
 import DistrictPopup from "../components/crosscompare/DistrictPopup.vue";
 
 const store = useCrossCompareStore();
@@ -271,6 +272,24 @@ watch(
 	},
 );
 
+// selectedTypes 改變 → 重新跟 BE 拿分數（會跑 TWCC，失敗則回 JSON fallback）
+// scores 更新後 watcher 會自動 fire 上面的 applyActivePaint + applyEnabledFilter
+watch(
+	() => store.selectedTypes,
+	(next, prev) => {
+		// Pinia 會 emit 即使 reference 改變但內容相同 — 用字串比對 short-circuit
+		if (
+			prev &&
+			next.length === prev.length &&
+			next.every((t, i) => t === prev[i])
+		) {
+			return;
+		}
+		store.fetchScores();
+	},
+	{ deep: true },
+);
+
 // ---------------------------------------------------------------
 // CC-04 hover：lift + popup
 // 事件僅綁在 active fill layer（D-12）— greyed layer 不接 hover，結構性保證 D-11
@@ -399,6 +418,7 @@ function onMouseLeave() {
     <!-- #crosscompareMapBox needs to be empty to ensure Mapbox performance -->
     <div id="crosscompareMapBox" />
     <ViewToggle class="crosscompare__toggle" />
+    <TypeSelector class="crosscompare__types" />
     <RampLegend
       class="crosscompare__legend"
       :domain="store.rampDomain"
@@ -423,6 +443,13 @@ function onMouseLeave() {
 		position: absolute;
 		top: var(--font-m);
 		left: var(--font-m);
+		z-index: 2;
+	}
+
+	&__types {
+		position: absolute;
+		top: var(--font-m);
+		right: var(--font-m);
 		z-index: 2;
 	}
 
