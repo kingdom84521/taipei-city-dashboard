@@ -264,10 +264,12 @@ watch(
 	{ deep: false },
 );
 
-// viewMode 切換（Plan 02-05 的 ViewToggle 觸發 store.setViewMode → enabledDistrictNames 改變）→ 立即 setFilter（D-12 INSTANT，無動畫）
+// viewMode 切換（Plan 02-05 的 ViewToggle 觸發 store.setViewMode → enabledDistrictNames 改變）
+// → 重新算 ramp domain + paint（rampDomain / scoreByDistrict 都依 enabledRows）+ 立即 setFilter（D-12 INSTANT，無動畫）
 watch(
 	() => store.viewMode,
 	() => {
+		applyActivePaint();
 		applyEnabledFilter();
 	},
 );

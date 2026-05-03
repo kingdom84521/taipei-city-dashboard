@@ -143,12 +143,24 @@ export const useCrossCompareStore = defineStore("crossCompare", {
 		error: false,
 	}),
 	getters: {
+		// 啟用區的 row 子集 — viewMode='taipei' 只留 city === '台北市'（變體 normalize），
+		// 其它 getter 都吃這個結果，所以切換 viewMode 時 ramp domain + paint 表達式
+		// 會自動依當前可視區重新標定（user-visible：台北 view 的最暗/最亮會比 雙北 view 更分得開）
+		enabledRows(state) {
+			if (state.viewMode === "metrotaipei") return state.scores;
+			return state.scores.filter((row) => {
+				const c = String(row.city || "").replace(/臺/g, "台");
+				return c === "台北市";
+			});
+		},
 		// [min, max] of total_score；scores 為空時回 [0, 100] 讓 UI 不爆
-		rampDomain(state) {
-			if (!state.scores.length) return [0, 100];
+		// 重要：只看 enabledRows — 切換 viewMode 時 ramp 會重新依當前視圖的子集做標定
+		rampDomain() {
+			const rows = this.enabledRows;
+			if (!rows.length) return [0, 100];
 			let min = Infinity;
 			let max = -Infinity;
-			for (const row of state.scores) {
+			for (const row of rows) {
 				const s = Number(row.total_score);
 				if (!Number.isFinite(s)) continue;
 				if (s < min) min = s;
@@ -158,9 +170,10 @@ export const useCrossCompareStore = defineStore("crossCompare", {
 			return [min, max];
 		},
 		// Map<normalizedKey, row> — 供 view 端做色階 lookup
-		scoreByDistrict(state) {
+		// 只 include enabledRows — paint 表達式的 match 在停用區會 fallback，由 greyed 層接手
+		scoreByDistrict() {
 			const m = new Map();
-			for (const row of state.scores) {
+			for (const row of this.enabledRows) {
 				const k = normalizeDistrictKey(row.city, row.district);
 				if (k) m.set(k, row);
 			}
