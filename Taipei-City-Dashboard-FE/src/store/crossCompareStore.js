@@ -2,18 +2,95 @@
 
 /* crossCompareStore */
 /*
-crossCompareStore 拉取後端的各區分數，並衍生出當前 view mode 下的
-啟用 / 停用 district 集合與色階 domain。
+crossCompareStore 直接讀靜態 JSON (public/mapData/district_combined_scores.json)
+取得各區分數，依勾選的 selectedTypes 在 15 種 combination 中查 row。
 本 store 只管資料；地圖實例由 CrossCompareView.vue 持有 (D-04 / D-05)。
-切換 view mode 時不重新打 API（D-18 — 後端永遠回傳 41 筆，前端做 client-side filter）。
+切換 view mode 不需要重新讀檔（已 cache 在 module 層）。
 */
 
 import { defineStore } from "pinia";
-import http from "../router/axios";
 import {
 	normalizeDistrictKey,
 	CROSSCOMPARE_BASE_TYPE_VALUES,
 } from "../assets/configs/crossCompareConfig";
+
+// JSON 檔案在 Vite 的 public/ 下，dev / prod 都會被 serve 在 /mapData/
+const SCORES_JSON_URL = "/mapData/district_combined_scores.json";
+
+// Module-scope cache — 整支檔案只 fetch 一次，後續切換 type / view 都直接 lookup
+let scoresCache = null;
+let scoresCachePromise = null;
+
+// 4 維度的 normalize max — mirror BE app/services/foodsafety/data.go NORM_BASE
+// 也存在於 JSON 的 meta.normalization；此處 hardcode 是讓 derive 不依賴 file load 時序
+const NORM_MAX = {
+	"課程": 59,
+	"檢驗": 16.4557,
+	"癌症篩檢": 403,
+	"優良評核": 307,
+};
+
+function round2(v) {
+	if (!Number.isFinite(v)) return 0;
+	return Math.round(v * 100) / 100;
+}
+
+// 拿 raw row 衍生出 4 維度的 0-100 normalized score — 對應 popup 的 course_score / inspection_score 等
+function deriveRow(raw) {
+	return {
+		...raw,
+		course_score: round2((Number(raw.courses) || 0) / NORM_MAX["課程"] * 100),
+		inspection_score: round2(
+			(Number(raw.inspection_rate) || 0) / NORM_MAX["檢驗"] * 100,
+		),
+		cancer_score: round2(
+			(Number(raw.cancer_clinics) || 0) / NORM_MAX["癌症篩檢"] * 100,
+		),
+		excellent_score: round2(
+			(Number(raw.excellent_count) || 0) / NORM_MAX["優良評核"] * 100,
+		),
+	};
+}
+
+// 在 cache 的 combinations[] 找出符合 selectedTypes 的那一組
+// 比較規則：去重 + sort 後 element-wise 相等（mirror BE normalizeTypes + equalSortedTypes）
+function findCombination(cache, selectedTypes) {
+	if (!cache || !Array.isArray(cache.combinations)) return null;
+	const want = [...new Set(selectedTypes)]
+		.filter((t) => CROSSCOMPARE_BASE_TYPE_VALUES.includes(t))
+		.sort();
+	if (want.length === 0) return null;
+	for (const combo of cache.combinations) {
+		const have = [...combo.type].sort();
+		if (have.length !== want.length) continue;
+		if (have.every((t, i) => t === want[i])) return combo;
+	}
+	return null;
+}
+
+async function loadScoresCache() {
+	if (scoresCache) return scoresCache;
+	if (scoresCachePromise) return scoresCachePromise;
+	scoresCachePromise = (async () => {
+		const resp = await fetch(SCORES_JSON_URL, { cache: "force-cache" });
+		if (!resp.ok) {
+			throw new Error(
+				`crossCompare scores HTTP ${resp.status} ${resp.statusText}`,
+			);
+		}
+		const json = await resp.json();
+		if (!json || !Array.isArray(json.combinations)) {
+			throw new Error("crossCompare scores JSON is malformed");
+		}
+		scoresCache = json;
+		return json;
+	})();
+	try {
+		return await scoresCachePromise;
+	} finally {
+		scoresCachePromise = null;
+	}
+}
 
 // localStorage 持久化用 key (D-09)
 const STORAGE_KEY = "crossCompare.viewMode";
@@ -136,24 +213,29 @@ export const useCrossCompareStore = defineStore("crossCompare", {
 			this.viewMode = readStoredViewMode();
 			this.selectedTypes = readStoredSelectedTypes();
 		},
-		// 單次 fetch（D-18）— BE 一律回 41 筆 metrotaipei 資料；前端做 client-side filter
-		// types 改變時也呼叫一次 — BE 會依當前 selectedTypes 跑 TWCC 或回 JSON fallback
+		// 從靜態 JSON 取分數 — 第一次 fetch 後 module-scope cache，後續切換 types / view 都直接 lookup。
+		// 對應 selectedTypes 找到 combinations[] 中的 row 集，然後 deriveRow 補上 4 維度的 *_score 欄位（popup 用）。
 		async fetchScores() {
 			this.loading = true;
 			this.error = false;
 			try {
-				const params = { view: "metrotaipei" };
-				// 全選時不傳 types — BE 預設值就是全 4 種；少送 query 字省 URL
-				if (
-					this.selectedTypes.length > 0 &&
-					this.selectedTypes.length < CROSSCOMPARE_BASE_TYPE_VALUES.length
-				) {
-					params.types = this.selectedTypes.join(",");
+				const cache = await loadScoresCache();
+				const combo = findCombination(cache, this.selectedTypes);
+				if (!combo) {
+					console.warn(
+						"[crossCompareStore] no combination matched",
+						this.selectedTypes,
+					);
+					this.scores = [];
+					return;
 				}
-				const response = await http.get("/crosscompare/scores", { params });
-				this.scores = response.data?.data ?? [];
-			} catch {
-				// axios interceptor (router/axios.js) 已彈出本地化 toast；這裡只記錄狀態
+				// all_districts_ranked 是 41 列；viewMode 過濾交給 enabled / disabled getter 做（D-18）
+				const rows = Array.isArray(combo.all_districts_ranked)
+					? combo.all_districts_ranked
+					: [];
+				this.scores = rows.map(deriveRow);
+			} catch (err) {
+				console.warn("[crossCompareStore] loadScores failed:", err);
 				this.error = true;
 				this.scores = [];
 			} finally {
