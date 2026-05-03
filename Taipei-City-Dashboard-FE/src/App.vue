@@ -222,17 +222,18 @@ onBeforeUnmount(() => {
   <div class="app-container">
     <NotificationBar />
     <NavBar v-if="authStore.currentPath !== 'embed'" />
-    <!-- /mapview, /dashboard layouts -->
+    <!-- /mapview, /dashboard, /crosscompare layouts -->
     <div
       v-if="
         authStore.currentPath === 'mapview' ||
-          authStore.currentPath === 'dashboard'
+          authStore.currentPath === 'dashboard' ||
+          authStore.currentPath === 'crosscompare'
       "
       class="app-content"
     >
-      <SideBar />
+      <SideBar v-if="authStore.currentPath !== 'crosscompare'" />
       <div class="app-content-main">
-        <SettingsBar />
+        <SettingsBar v-if="authStore.currentPath !== 'crosscompare'" />
         <RouterView />
       </div>
     </div>
